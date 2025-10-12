@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>25:00 - Pomodoro Timer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            color: white;
+            position: relative;
+            overflow-x: hidden;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('default_background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.5;
+            z-index: -1;
+            pointer-events: none;
+        }
+        body.custom-background::before {
+            opacity: 0.5;
+        }
+        body > * {
+            position: relative;
+            z-index: 1;
+        }
+        .top-mode-switch {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 1rem 0 2rem 0;
+            flex-wrap: wrap;
+        }
+        .top-mode-switch button {
+            padding: 1rem 2.5rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 2rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.25);
+            color: white;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        .top-mode-switch button.active {
+            background: rgba(255,255,255,0.95);
+            color: #4a5568;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.95);
+        }
+        .top-mode-switch button:hover:not(.active) {
+            background: rgba(255,255,255,0.35);
+            transform: translateY(-1px);
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: minmax(250px, 1fr) auto minmax(250px, 1fr);
+            gap: 2rem;
+            max-width: 1400px;
+            width: 100%;
+            align-items: center;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .todo-column {
+            background: rgba(0,0,0,0.3);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            min-width: 250px;
+            max-height: 80vh;
+            overflow-y: auto;
+            align-self: center;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        .todo-column.hidden {
+            visibility: hidden;
+            opacity: 0;
+        }
+        .todo-column h2 {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            text-align: center;
+            opacity: 0.9;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 500px;
+            width: 500px;
+        }
+        .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+        .badge.break-mode {
+            background: rgba(52, 211, 153, 0.3);
+        }
+        .badge.long-break-mode {
+            background: rgba(139, 92, 246, 0.3);
+        }
+        .timer-circle {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 2rem auto;
+        }
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3.5rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+        }
+        .timer-status {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 2rem 0 1rem 0;
+            flex-wrap: wrap;
+        }
+        .controls-secondary {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .btn-warning {
+            background: #fbbf24;
+            color: #78350f;
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-ghost {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .btn-circle {
+            width: 3rem;
+            height: 3rem;
+            padding: 0;
+            border-radius: 50%;
+        }
+        .settings {
+            background: rgba(0,0,0,0.2);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            margin-top: 2rem;
+            backdrop-filter: blur(10px);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .settings.hidden { display: none; }
+        .settings input[type="number"], .settings input[type="text"], .settings select {
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            text-align: center;
+            font-size: 1rem;
+        }
+        .settings input[type="number"] {
+            width: 80px;
+        }
+        .settings input[type="text"] {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .settings select {
+            width: 100%;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            cursor: pointer;
+        }
+        .settings select option {
+            background: #2d3748;
+            color: white;
+        }
+        .settings input[type="text"]::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        .settings label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .preset-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+        .preset-buttons button {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        .complete {
+            color: #10b981 !important;
+        }
+        .file-input-group {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .file-input-group input[type="file"] {
+            display: block;
+            width: 100%;
+            padding: 0.5rem;
+            margin-top: 0.5rem;
+            border-radius: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        .file-input-group input[type="file"]::-webkit-file-upload-button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            color: white;
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+        .settings-section {
+            margin-bottom: 1.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .settings-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        /* To-Do List Styles */
+        .task-input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .task-input-group input {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 0.9rem;
+        }
+        .task-input-group input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+        .task-input-group button {
+            padding: 0.75rem 1.25rem;
+            font-size: 0.9rem;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .task-input-group button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .task-list {
+            list-style: none;
+        }
+        .task-item {
+            background: rgba(255,255,255,0.05);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .task-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .task-item.active {
+            background: rgba(255,255,255,0.15);
+            border-left: 3px solid #10b981;
+        }
+        .task-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .task-item label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        .task-item.completed label {
+            text-decoration: line-through;
+            opacity: 0.5;
+        }
+        .task-item .delete-btn {
+            background: rgba(239, 68, 68, 0.2);
+            color: white;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: all 0.2s;
+        }
+        .task-item .delete-btn:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+        .task-time {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-left: 0.5rem;
+        }
+        .subtask-item {
+            padding-left: 1rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+            opacity: 0.5;
+            font-size: 0.9rem;
+        }
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .volume-control input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255,255,255,0.2);
+            outline: none;
+        }
+        .volume-control span {
+            font-size: 0.875rem;
+            min-width: 40px;
+        }
+        
+        /* YouTube Player Styles */
+        .youtube-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            padding: 1rem;
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            max-width: 400px;
+        }
+        .youtube-container.hidden {
+            display: none;
+        }
+        .youtube-container.minimized #youtube-player-wrapper {
+            display: none;
+        }
+        .youtube-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .youtube-header h3 {
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        .youtube-header button {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        #youtube-player-wrapper {
+            margin-bottom: 0.5rem;
+        }
+        .youtube-controls {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .youtube-controls button {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        /* Stats Modal */
+        .stats-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            padding: 1rem;
+        }
+        .stats-modal.hidden {
+            display: none;
+        }
+        .stats-content {
+            background: rgba(30,30,50,0.95);
+            padding: 2rem;
+            border-radius: 1rem;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .stats-header h2 {
+            margin: 0;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.7;
+        }
+        .task-stats {
+            margin-top: 2rem;
+        }
+        .task-stats h3 {
+            margin-bottom: 1rem;
+        }
+        .task-stat-item {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .task-stat-item .task-name {
+            font-weight: 600;
+        }
+        .task-stat-item .task-metrics {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 1200px) {
+            .main-layout {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            .todo-column {
+                width: 100%;
+                max-width: 500px;
+            }
+            .todo-column.hidden {
+                display: none;
+            }
+            .youtube-container {
+                position: static;
+                margin: 1rem auto;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Boutons de sélection de mode en haut -->
+    <div class="top-mode-switch">
+        <button id="btn-pomodoro-top" class="active">Pomodoro</button>
+        <button id="btn-break-top">Pause courte</button>
+        <button id="btn-long-break-top">Pause longue</button>
+    </div>
+
+    <div class="main-layout">
+        <!-- To-Do List Gauche -->
+        <div class="todo-column">
+            <h2>📋 Tâches principales</h2>
+            <div class="task-input-group">
+                <input type="text" id="main-task-input" placeholder="Nouvelle tâche...">
+                <button onclick="addMainTask()">+</button>
+            </div>
+            <ul id="main-task-list" class="task-list"></ul>
+            <div id="main-empty" class="empty-state">Aucune tâche pour le moment</div>
+        </div>
+
+        <!-- Timer central -->
+        <div class="container">
+            <div id="mode-badge" class="badge">POMODORO</div>
+            <div id="session-count" style="font-size: 0.875rem; opacity: 0.7; margin-bottom: 1rem;">Session #1</div>
+            
+            <div class="timer-circle">
+                <svg width="280" height="280" style="transform: rotate(-90deg);">
+                    <circle cx="140" cy="140" r="120" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="none"/>
+                    <circle id="progress-ring" cx="140" cy="140" r="120" stroke="white" stroke-width="8" fill="none" 
+                            stroke-dasharray="753.98" stroke-dashoffset="0" stroke-linecap="round" 
+                            style="transition: stroke-dashoffset 1s linear;"/>
+                </svg>
+                <div id="timer-display" class="timer-display">25:00</div>
+                <div id="timer-status" class="timer-status">Prêt à se concentrer</div>
+            </div>
+
+            <div class="controls">
+                <button id="btn-start" class="btn-primary">Démarrer</button>
+                <button id="btn-reset" class="btn-ghost">Réinitialiser</button>
+                <button id="btn-toggle-ambient-main" class="btn-ghost" style="display: none;">🎵</button>
+            </div>
+
+            <div class="controls-secondary">
+                <button id="btn-stats" class="btn-ghost">📊</button>
+                <button id="btn-settings" class="btn-ghost btn-circle">⚙️</button>
+            </div>
+
+            <div id="settings-panel" class="settings hidden">
+                <div class="settings-section">
+                    <label>Durée Pomodoro (minutes)</label>
+                    <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+                        <button id="btn-decrease-pomodoro" class="btn-ghost btn-circle">−</button>
+                        <input id="input-pomodoro-duration" type="number" value="25" min="1" max="90">
+                        <button id="btn-increase-pomodoro" class="btn-ghost btn-circle">+</button>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="btn-ghost" onclick="setPomorodoDuration(25)">25m</button>
+                        <button class="btn-ghost" onclick="setPomorodoDuration(45)">45m</button>
+                        <button class="btn-ghost" onclick="setPomorodoDuration(60)">60m</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <label>Durée Pause courte (minutes)</label>
+                    <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+                        <button id="btn-decrease-break" class="btn-ghost btn-circle">−</button>
+                        <input id="input-break-duration" type="number" value="5" min="1" max="30">
+                        <button id="btn-increase-break" class="btn-ghost btn-circle">+</button>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="btn-ghost" onclick="setBreakDuration(5)">5m</button>
+                        <button class="btn-ghost" onclick="setBreakDuration(10)">10m</button>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <label>Durée Pause longue (minutes)</label>
+                    <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+                        <button id="btn-decrease-long-break" class="btn-ghost btn-circle">−</button>
+                        <input id="input-long-break-duration" type="number" value="15" min="1" max="60">
+                        <button id="btn-increase-long-break" class="btn-ghost btn-circle">+</button>
+                    </div>
+                    <div class="preset-buttons">
+                        <button class="btn-ghost" onclick="setLongBreakDuration(15)">15m</button>
+                        <button class="btn-ghost" onclick="setLongBreakDuration(30)">30m</button>
+                    </div>
+                </div>
+
+                <div class="file-input-group">
+                    <label>Sonnerie d'alarme</label>
+                    <select id="alarm-select">
+                        <option value="default">Alarme par défaut (alarm.mp3)</option>
+                        <option value="bell">🔔 Cloche</option>
+                        <option value="chime">🎵 Carillon</option>
+                        <option value="custom">Fichier personnalisé</option>
+                    </select>
+                    <input type="file" id="alarm-file" accept="audio/mp3,audio/mpeg,audio/*" style="display: none; margin-top: 0.5rem;">
+                    <div class="volume-control">
+                        <span>🔔</span>
+                        <input type="range" id="alarm-volume" min="0" max="100" value="100">
+                        <span id="alarm-volume-display">100%</span>
+                    </div>
+                </div>
+
+                <div class="file-input-group">
+                    <label>Musique d'ambiance (MP3)</label>
+                    <input type="file" id="ambient-file" accept="audio/mp3,audio/mpeg,audio/*">
+                    <div class="volume-control">
+                        <span>🔊</span>
+                        <input type="range" id="ambient-volume" min="0" max="100" value="50">
+                        <span id="volume-display">50%</span>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button id="btn-toggle-ambient" class="btn-ghost" style="flex: 1; padding: 0.5rem;">⏸️ Pause musique</button>
+                    </div>
+                    <div style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">La musique démarre avec le timer</div>
+                </div>
+
+                <div class="file-input-group">
+                    <label>YouTube Playlist/Vidéo</label>
+                    <input type="text" id="youtube-url" placeholder="https://youtube.com/watch?v=... ou playlist">
+                    <button id="btn-load-youtube" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Charger YouTube</button>
+                    <button id="btn-toggle-youtube" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Afficher/Masquer YouTube</button>
+                </div>
+
+                <div class="file-input-group">
+                    <label>Image de fond personnalisée</label>
+                    <input type="file" id="background-file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
+                    <button id="btn-remove-bg" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Supprimer l'image</button>
+                </div>
+
+                <div class="file-input-group">
+                    <label>Affichage des listes de tâches</label>
+                    <button id="btn-toggle-main-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">Masquer tâches principales</button>
+                    <button id="btn-toggle-sub-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem;">Masquer sous-tâches</button>
+                </div>
+
+                <div class="file-input-group">
+                    <label>Réinitialisation</label>
+                    <button id="btn-reset-all" class="btn-ghost" style="width: 100%; padding: 0.75rem; background: rgba(239, 68, 68, 0.2);">🗑️ Réinitialiser tout</button>
+                    <div style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Supprime toutes les tâches et remet les compteurs à zéro</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- To-Do List Droite -->
+        <div class="todo-column">
+            <h2>📝 Sous-tâches</h2>
+            <div id="subtask-section" style="display: none;">
+                <div class="task-input-group">
+                    <input type="text" id="sub-task-input" placeholder="Nouvelle sous-tâche...">
+                    <button onclick="addSubTask()">+</button>
+                </div>
+                <ul id="sub-task-list" class="task-list"></ul>
+            </div>
+            <div id="sub-empty" class="empty-state">Sélectionnez une tâche principale pour voir ses sous-tâches</div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="stats-modal hidden">
+        <div class="stats-content">
+            <div class="stats-header">
+                <h2>📊 Statistiques</h2>
+                <button id="btn-close-stats" class="btn-ghost">×</button>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Sessions Totales</div>
+                    <div class="stat-value" id="stat-total-sessions">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Temps Total (Pomodoro)</div>
+                    <div class="stat-value" id="stat-total-time">0h</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tâches Complétées</div>
+                    <div class="stat-value" id="stat-completed-tasks">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Tâches Actives</div>
+                    <div class="stat-value" id="stat-active-tasks">0</div>
+                </div>
+            </div>
+
+            <div class="task-stats">
+                <h3>📋 Temps par Tâche</h3>
+                <div id="task-stats-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- YouTube Player Container -->
+    <div id="youtube-container" class="youtube-container hidden">
+        <div class="youtube-header">
+            <h3>🎵 YouTube Player</h3>
+            <div>
+                <button id="btn-minimize-youtube" class="btn-ghost">_</button>
+                <button id="btn-close-youtube" class="btn-ghost">×</button>
+            </div>
+        </div>
+        <div id="youtube-player-wrapper">
+            <div id="youtube-player"></div>
+        </div>
+        <div class="youtube-controls">
+            <button id="btn-youtube-prev" class="btn-ghost">⏮️</button>
+            <button id="btn-youtube-play" class="btn-ghost">▶️</button>
+            <button id="btn-youtube-next" class="btn-ghost">⏭️</button>
+        </div>
+    </div>
+
+    <audio id="alarm-audio" preload="auto">
+        <source src="alarm.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="ambient-audio" loop preload="auto"></audio>
+
+    <!-- YouTube IFrame API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <script>
+        // Timer variables
+        let timerInterval = null;
+        let timeRemaining = 25 * 60;
+        let totalTime = 25 * 60;
+        let isRunning = false;
+        let sessionCount = 1;
+        let currentMode = 'pomodoro';
+
+        // To-Do variables
+        let mainTasks = [];
+        let selectedTaskId = null;
+        let taskIdCounter = 0;
+        let mainTasksVisible = true;
+        let subTasksVisible = true;
+
+        // Ambient music variables
+        let ambientPlaying = false;
+        let ambientMusicLoaded = false;
+        let originalAmbientVolume = 0.5;
+
+        // YouTube variables
+        let player;
+        let youtubeLoaded = false;
+        let youtubeMinimized = false;
+
+        const timerDisplay = document.getElementById('timer-display');
+        const timerStatus = document.getElementById('timer-status');
+        const progressRing = document.getElementById('progress-ring');
+        const modeBadge = document.getElementById('mode-badge');
+        const btnStart = document.getElementById('btn-start');
+        const btnReset = document.getElementById('btn-reset');
+        const btnSettings = document.getElementById('btn-settings');
+        const btnPomodoroTop = document.getElementById('btn-pomodoro-top');
+        const btnBreakTop = document.getElementById('btn-break-top');
+        const btnLongBreakTop = document.getElementById('btn-long-break-top');
+        const settingsPanel = document.getElementById('settings-panel');
+        const inputPomorodoDuration = document.getElementById('input-pomodoro-duration');
+        const inputBreakDuration = document.getElementById('input-break-duration');
+        const inputLongBreakDuration = document.getElementById('input-long-break-duration');
+        const sessionCountEl = document.getElementById('session-count');
+        const alarmAudio = document.getElementById('alarm-audio');
+        const alarmSelect = document.getElementById('alarm-select');
+        const alarmFileInput = document.getElementById('alarm-file');
+        const alarmVolumeInput = document.getElementById('alarm-volume');
+        const alarmVolumeDisplay = document.getElementById('alarm-volume-display');
+        const backgroundFileInput = document.getElementById('background-file');
+        const btnRemoveBg = document.getElementById('btn-remove-bg');
+        const btnToggleMainTasks = document.getElementById('btn-toggle-main-tasks');
+        const btnToggleSubTasks = document.getElementById('btn-toggle-sub-tasks');
+        const todoColumns = document.querySelectorAll('.todo-column');
+        const ambientAudio = document.getElementById('ambient-audio');
+        const ambientFileInput = document.getElementById('ambient-file');
+        const ambientVolumeInput = document.getElementById('ambient-volume');
+        const volumeDisplay = document.getElementById('volume-display');
+        const btnToggleAmbient = document.getElementById('btn-toggle-ambient');
+        const btnToggleAmbientMain = document.getElementById('btn-toggle-ambient-main');
+        const btnResetAll = document.getElementById('btn-reset-all');
+        const youtubeUrlInput = document.getElementById('youtube-url');
+        const btnLoadYoutube = document.getElementById('btn-load-youtube');
+        const btnToggleYoutube = document.getElementById('btn-toggle-youtube');
+        const youtubeContainer = document.getElementById('youtube-container');
+        const btnMinimizeYoutube = document.getElementById('btn-minimize-youtube');
+        const btnCloseYoutube = document.getElementById('btn-close-youtube');
+        const btnYoutubePrev = document.getElementById('btn-youtube-prev');
+        const btnYoutubePlay = document.getElementById('btn-youtube-play');
+        const btnYoutubeNext = document.getElementById('btn-youtube-next');
+        const btnStats = document.getElementById('btn-stats');
+        const statsModal = document.getElementById('stats-modal');
+        const btnCloseStats = document.getElementById('btn-close-stats');
+
+        // Generate simple bell sound
+        function generateBellSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const duration = 2;
+            const sampleRate = audioContext.sampleRate;
+            const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate);
+            const channel = buffer.getChannelData(0);
+            
+            for (let i = 0; i < channel.length; i++) {
+                const t = i / sampleRate;
+                channel[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-3 * t);
+            }
+            
+            return buffer;
+        }
+
+        // Generate chime sound
+        function generateChimeSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const duration = 2;
+            const sampleRate = audioContext.sampleRate;
+            const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate);
+            const channel = buffer.getChannelData(0);
+            
+            for (let i = 0; i < channel.length; i++) {
+                const t = i / sampleRate;
+                channel[i] = (Math.sin(2 * Math.PI * 523 * t) + Math.sin(2 * Math.PI * 659 * t)) * 0.5 * Math.exp(-2 * t);
+            }
+            
+            return buffer;
+        }
+
+        // Alarm select handler
+        alarmSelect.addEventListener('change', (e) => {
+            const value = e.target.value;
+            if (value === 'custom') {
+                alarmFileInput.style.display = 'block';
+            } else {
+                alarmFileInput.style.display = 'none';
+                if (value === 'default') {
+                    alarmAudio.src = 'alarm.mp3';
+                }
+            }
+            saveSettings();
+        });
+
+        // YouTube API Ready
+        function onYouTubeIframeAPIReady() {
+            console.log('YouTube API Ready');
+        }
+
+        function extractVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function extractPlaylistId(url) {
+            const regExp = /[?&]list=([^#&?]+)/;
+            const match = url.match(regExp);
+            return match ? match[1] : null;
+        }
+
+        btnLoadYoutube.addEventListener('click', () => {
+            const url = youtubeUrlInput.value.trim();
+            if (!url) {
+                alert('Veuillez entrer une URL YouTube');
+                return;
+            }
+
+            const videoId = extractVideoId(url);
+            const playlistId = extractPlaylistId(url);
+
+            if (!videoId && !playlistId) {
+                alert('URL YouTube invalide');
+                return;
+            }
+
+            if (player) {
+                player.destroy();
+            }
+
+            const playerVars = {
+                autoplay: 0,
+                controls: 1,
+                modestbranding: 1,
+                rel: 0
+            };
+
+            if (playlistId) {
+                playerVars.list = playlistId;
+                playerVars.listType = 'playlist';
+            }
+
+            player = new YT.Player('youtube-player', {
+                height: '200',
+                width: '100%',
+                videoId: videoId || undefined,
+                playerVars: playerVars,
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+
+            youtubeLoaded = true;
+            youtubeContainer.classList.remove('hidden');
+        });
+
+        function onPlayerReady(event) {
+            console.log('Player ready');
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                btnYoutubePlay.textContent = '⏸️';
+            } else {
+                btnYoutubePlay.textContent = '▶️';
+            }
+        }
+
+        btnToggleYoutube.addEventListener('click', () => {
+            if (!youtubeLoaded) {
+                alert('Veuillez d\'abord charger une vidéo/playlist YouTube');
+                return;
+            }
+            youtubeContainer.classList.toggle('hidden');
+        });
+
+        btnMinimizeYoutube.addEventListener('click', () => {
+            youtubeMinimized = !youtubeMinimized;
+            youtubeContainer.classList.toggle('minimized');
+            btnMinimizeYoutube.textContent = youtubeMinimized ? '□' : '_';
+        });
+
+        btnCloseYoutube.addEventListener('click', () => {
+            youtubeContainer.classList.add('hidden');
+        });
+
+        btnYoutubePlay.addEventListener('click', () => {
+            if (!player) return;
+            const state = player.getPlayerState();
+            if (state === YT.PlayerState.PLAYING) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        });
+
+        btnYoutubePrev.addEventListener('click', () => {
+            if (player) player.previousVideo();
+        });
+
+        btnYoutubeNext.addEventListener('click', () => {
+            if (player) player.nextVideo();
+        });
+
+        // Load saved data
+        function loadData() {
+            const saved = localStorage.getItem('pomodoroData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    mainTasks = data.tasks || [];
+                    taskIdCounter = data.taskIdCounter || 0;
+                    sessionCount = data.sessionCount || 1;
+                    sessionCountEl.textContent = `Session #${sessionCount}`;
+                    renderMainTasks();
+                } catch (e) {
+                    console.error('Erreur de chargement des données:', e);
+                }
+            }
+            
+            // Load background image
+            const savedBg = localStorage.getItem('customBackground');
+            if (savedBg) {
+                const style = document.createElement('style');
+                style.id = 'custom-bg-style';
+                style.textContent = `body::before { background-image: url(${savedBg}) !important; }`;
+                document.head.appendChild(style);
+                document.body.classList.add('custom-background');
+            }
+            
+            // Load settings
+            const savedSettings = localStorage.getItem('pomodoroSettings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.alarmType) {
+                        alarmSelect.value = settings.alarmType;
+                        if (settings.alarmType === 'custom') {
+                            alarmFileInput.style.display = 'block';
+                        }
+                    }
+                } catch (e) {
+                    console.error('Erreur de chargement des paramètres:', e);
+                }
+            }
+        }
+
+        function saveData() {
+            const data = {
+                tasks: mainTasks,
+                taskIdCounter: taskIdCounter,
+                sessionCount: sessionCount
+            };
+            localStorage.setItem('pomodoroData', JSON.stringify(data));
+        }
+        
+        function saveSettings() {
+            const settings = {
+                alarmType: alarmSelect.value
+            };
+            localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+        }
+
+        function updateTitle() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            let modeStr = 'Pomodoro';
+            if (currentMode === 'break') modeStr = 'Pause courte';
+            else if (currentMode === 'long-break') modeStr = 'Pause longue';
+            document.title = `${timeStr} - ${modeStr}`;
+        }
+
+        // Alarm volume control
+        alarmVolumeInput.addEventListener('input', (e) => {
+            const volume = e.target.value;
+            alarmVolumeDisplay.textContent = `${volume}%`;
+            alarmAudio.volume = volume / 100;
+        });
+
+        alarmFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                alarmAudio.src = url;
+            }
+        });
+
+        // Ambient music
+        ambientFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                ambientAudio.src = url;
+                ambientAudio.volume = ambientVolumeInput.value / 100;
+                ambientMusicLoaded = true;
+                btnToggleAmbient.textContent = '⏸️ Pause musique';
+                btnToggleAmbientMain.style.display = 'block';
+                btnToggleAmbientMain.textContent = '🎵';
+            }
+        });
+
+        ambientVolumeInput.addEventListener('input', (e) => {
+            const volume = e.target.value;
+            volumeDisplay.textContent = `${volume}%`;
+            ambientAudio.volume = volume / 100;
+            originalAmbientVolume = volume / 100;
+        });
+
+        function toggleAmbientMusic() {
+            if (!ambientMusicLoaded) {
+                alert('Veuillez d\'abord sélectionner un fichier MP3 dans les paramètres');
+                return;
+            }
+
+            if (ambientPlaying) {
+                ambientAudio.pause();
+                btnToggleAmbient.textContent = '▶️ Reprendre musique';
+                btnToggleAmbientMain.textContent = '🔇';
+                ambientPlaying = false;
+            } else {
+                ambientAudio.play().catch(err => {
+                    console.error('Impossible de jouer la musique:', err);
+                });
+                btnToggleAmbient.textContent = '⏸️ Pause musique';
+                btnToggleAmbientMain.textContent = '🎵';
+                ambientPlaying = true;
+            }
+        }
+
+        btnToggleAmbient.addEventListener('click', toggleAmbientMusic);
+        btnToggleAmbientMain.addEventListener('click', toggleAmbientMusic);
+
+        backgroundFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const style = document.createElement('style');
+                    style.id = 'custom-bg-style';
+                    const existingStyle = document.getElementById('custom-bg-style');
+                    if (existingStyle) existingStyle.remove();
+                    style.textContent = `body::before { background-image: url(${event.target.result}) !important; }`;
+                    document.head.appendChild(style);
+                    document.body.classList.add('custom-background');
+                    
+                    // Save to localStorage
+                    localStorage.setItem('customBackground', event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        btnRemoveBg.addEventListener('click', () => {
+            const style = document.getElementById('custom-bg-style');
+            if (style) style.remove();
+            document.body.classList.remove('custom-background');
+            backgroundFileInput.value = '';
+            localStorage.removeItem('customBackground');
+        });
+
+        btnToggleMainTasks.addEventListener('click', () => {
+            mainTasksVisible = !mainTasksVisible;
+            const mainColumn = todoColumns[0];
+            if (mainTasksVisible) {
+                mainColumn.classList.remove('hidden');
+            } else {
+                mainColumn.classList.add('hidden');
+            }
+            btnToggleMainTasks.textContent = mainTasksVisible ? 'Masquer tâches principales' : 'Afficher tâches principales';
+        });
+
+        btnToggleSubTasks.addEventListener('click', () => {
+            subTasksVisible = !subTasksVisible;
+            const subColumn = todoColumns[1];
+            if (subTasksVisible) {
+                subColumn.classList.remove('hidden');
+            } else {
+                subColumn.classList.add('hidden');
+            }
+            btnToggleSubTasks.textContent = subTasksVisible ? 'Masquer sous-tâches' : 'Afficher sous-tâches';
+        });
+
+        // Stats functionality
+        function updateStats() {
+            const totalSessions = sessionCount - 1;
+            const completedTasks = mainTasks.filter(t => t.completed).length;
+            const activeTasks = mainTasks.filter(t => !t.completed).length;
+            const totalTime = mainTasks.reduce((sum, task) => sum + (task.timeSpent || 0), 0);
+            
+            document.getElementById('stat-total-sessions').textContent = totalSessions;
+            document.getElementById('stat-total-time').textContent = formatTime(totalTime);
+            document.getElementById('stat-completed-tasks').textContent = completedTasks;
+            document.getElementById('stat-active-tasks').textContent = activeTasks;
+            
+            // Task stats
+            const taskStatsList = document.getElementById('task-stats-list');
+            taskStatsList.innerHTML = '';
+            
+            const sortedTasks = [...mainTasks].sort((a, b) => (b.timeSpent || 0) - (a.timeSpent || 0));
+            
+            if (sortedTasks.length === 0) {
+                taskStatsList.innerHTML = '<div style="text-align: center; opacity: 0.5; padding: 2rem;">Aucune tâche pour le moment</div>';
+            } else {
+                sortedTasks.forEach(task => {
+                    const timeSpent = task.timeSpent || 0;
+                    const sessions = Math.floor(timeSpent / (parseInt(inputPomorodoDuration.value) || 25));
+                    const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                    const totalSubtasks = task.subtasks.length;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'task-stat-item';
+                    item.innerHTML = `
+                        <div class="task-name">${task.completed ? '✓ ' : ''}${task.text}</div>
+                        <div class="task-metrics">
+                            <span>⏱️ ${formatTime(timeSpent)}</span>
+                            <span>🍅 ${sessions} sessions</span>
+                            ${totalSubtasks > 0 ? `<span>✓ ${completedSubtasks}/${totalSubtasks} sous-tâches</span>` : ''}
+                        </div>
+                    `;
+                    taskStatsList.appendChild(item);
+                });
+            }
+        }
+
+        btnStats.addEventListener('click', () => {
+            updateStats();
+            statsModal.classList.remove('hidden');
+        });
+
+        btnCloseStats.addEventListener('click', () => {
+            statsModal.classList.add('hidden');
+        });
+
+        statsModal.addEventListener('click', (e) => {
+            if (e.target === statsModal) {
+                statsModal.classList.add('hidden');
+            }
+        });
+
+        btnResetAll.addEventListener('click', () => {
+            if (confirm('⚠️ Êtes-vous sûr de vouloir tout réinitialiser ?\n\nCela supprimera :\n• Toutes les tâches et sous-tâches\n• Tous les temps enregistrés\n• Le compteur de sessions\n\nCette action est irréversible.')) {
+                if (isRunning) stopTimer();
+                mainTasks = [];
+                selectedTaskId = null;
+                taskIdCounter = 0;
+                sessionCount = 1;
+                sessionCountEl.textContent = 'Session #1';
+                renderMainTasks();
+                renderSubTasks();
+                saveData();
+                alert('✅ Toutes les données ont été réinitialisées avec succès !');
+            }
+        });
+
+        function switchMode(mode) {
+            if (isRunning) stopTimer();
+            currentMode = mode;
+            btnPomodoroTop.classList.remove('active');
+            btnBreakTop.classList.remove('active');
+            btnLongBreakTop.classList.remove('active');
+            
+            if (mode === 'pomodoro') {
+                modeBadge.textContent = 'POMODORO';
+                modeBadge.classList.remove('break-mode', 'long-break-mode');
+                btnPomodoroTop.classList.add('active');
+                timerStatus.textContent = 'Prêt à se concentrer';
+            } else if (mode === 'break') {
+                modeBadge.textContent = 'PAUSE COURTE';
+                modeBadge.classList.remove('long-break-mode');
+                modeBadge.classList.add('break-mode');
+                btnBreakTop.classList.add('active');
+                timerStatus.textContent = 'Prêt pour une pause';
+            } else if (mode === 'long-break') {
+                modeBadge.textContent = 'PAUSE LONGUE';
+                modeBadge.classList.remove('break-mode');
+                modeBadge.classList.add('long-break-mode');
+                btnLongBreakTop.classList.add('active');
+                timerStatus.textContent = 'Prêt pour une longue pause';
+            }
+            resetTimer();
+        }
+
+        function updateDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const progress = 1 - (timeRemaining / totalTime);
+            const offset = 753.98 * progress;
+            progressRing.style.strokeDashoffset = offset;
+            updateTitle();
+        }
+
+        function playAlarm() {
+            const alarmType = alarmSelect.value;
+            
+            if (alarmType === 'bell' || alarmType === 'chime') {
+                // Use Web Audio API for built-in sounds
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const buffer = alarmType === 'bell' ? generateBellSound() : generateChimeSound();
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+                
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = alarmVolumeInput.value / 100;
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                source.start(0);
+            } else {
+                // Use HTML5 audio for default or custom
+                alarmAudio.currentTime = 0;
+                alarmAudio.play().catch(err => {
+                    console.error('Impossible de jouer l\'alarme:', err);
+                });
+            }
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            btnStart.textContent = 'Pause';
+            btnStart.className = 'btn-warning';
+            
+            if (currentMode === 'pomodoro') {
+                timerStatus.textContent = 'Temps de concentration';
+            } else if (currentMode === 'break') {
+                timerStatus.textContent = 'Temps de pause courte';
+            } else {
+                timerStatus.textContent = 'Temps de pause longue';
+            }
+            
+            if (ambientMusicLoaded && !ambientPlaying) {
+                ambientAudio.play().catch(err => {
+                    console.error('Impossible de jouer la musique:', err);
+                });
+                ambientPlaying = true;
+                btnToggleAmbient.textContent = '⏸️ Pause musique';
+                btnToggleAmbientMain.textContent = '🎵';
+            }
+            
+            if (ambientPlaying) {
+                ambientAudio.volume = originalAmbientVolume;
+            }
+            
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                if (timeRemaining <= 5 && timeRemaining > 0 && ambientPlaying) {
+                    const fadeRatio = timeRemaining / 5;
+                    ambientAudio.volume = originalAmbientVolume * fadeRatio * 0.2;
+                }
+                updateDisplay();
+                if (timeRemaining <= 0) {
+                    stopTimer();
+                    completeTimer();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            btnStart.textContent = 'Démarrer';
+            btnStart.className = currentMode === 'pomodoro' ? 'btn-primary' : 'btn-success';
+            timerStatus.textContent = 'En pause';
+            if (ambientPlaying) {
+                ambientAudio.pause();
+                ambientPlaying = false;
+                btnToggleAmbient.textContent = '▶️ Reprendre musique';
+                btnToggleAmbientMain.textContent = '🔇';
+            }
+        }
+
+        function resetTimer() {
+            stopTimer();
+            let duration;
+            if (currentMode === 'pomodoro') {
+                duration = parseInt(inputPomorodoDuration.value) || 25;
+            } else if (currentMode === 'break') {
+                duration = parseInt(inputBreakDuration.value) || 5;
+            } else {
+                duration = parseInt(inputLongBreakDuration.value) || 15;
+            }
+            timeRemaining = duration * 60;
+            totalTime = duration * 60;
+            updateDisplay();
+            timerDisplay.classList.remove('complete');
+            if (currentMode === 'pomodoro') {
+                timerStatus.textContent = 'Prêt à se concentrer';
+            } else if (currentMode === 'break') {
+                timerStatus.textContent = 'Prêt pour une pause';
+            } else {
+                timerStatus.textContent = 'Prêt pour une longue pause';
+            }
+        }
+
+        function completeTimer() {
+            timerDisplay.classList.add('complete');
+            timerStatus.textContent = '🔔 Terminé !';
+            playAlarm();
+            if (currentMode === 'pomodoro') {
+                sessionCount++;
+                sessionCountEl.textContent = `Session #${sessionCount}`;
+                if (selectedTaskId !== null) {
+                    const task = mainTasks.find(t => t.id === selectedTaskId);
+                    if (task) {
+                        const duration = parseInt(inputPomorodoDuration.value) || 25;
+                        task.timeSpent = (task.timeSpent || 0) + duration;
+                        renderMainTasks();
+                    }
+                }
+                saveData();
+            }
+            setTimeout(() => {
+                if (ambientPlaying) {
+                    ambientAudio.volume = originalAmbientVolume;
+                }
+                resetTimer();
+            }, 3000);
+        }
+
+        function setPomorodoDuration(minutes) {
+            inputPomorodoDuration.value = minutes;
+            if (currentMode === 'pomodoro') resetTimer();
+        }
+
+        function setBreakDuration(minutes) {
+            inputBreakDuration.value = minutes;
+            if (currentMode === 'break') resetTimer();
+        }
+
+        function setLongBreakDuration(minutes) {
+            inputLongBreakDuration.value = minutes;
+            if (currentMode === 'long-break') resetTimer();
+        }
+
+        function formatTime(minutes) {
+            if (minutes < 60) {
+                return `${minutes}min`;
+            }
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return mins > 0 ? `${hours}h${mins}min` : `${hours}h`;
+        }
+
+        function addMainTask() {
+            const input = document.getElementById('main-task-input');
+            const text = input.value.trim();
+            if (text === '') return;
+            const task = {
+                id: taskIdCounter++,
+                text: text,
+                completed: false,
+                subtasks: [],
+                timeSpent: 0
+            };
+            mainTasks.push(task);
+            input.value = '';
+            renderMainTasks();
+            saveData();
+        }
+
+        function addSubTask() {
+            if (selectedTaskId === null) return;
+            const input = document.getElementById('sub-task-input');
+            const text = input.value.trim();
+            if (text === '') return;
+            const task = mainTasks.find(t => t.id === selectedTaskId);
+            if (!task) return;
+            const subtask = {
+                id: taskIdCounter++,
+                text: text,
+                completed: false
+            };
+            task.subtasks.push(subtask);
+            input.value = '';
+            renderSubTasks();
+            saveData();
+        }
+
+        function toggleMainTask(id) {
+            const task = mainTasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                renderMainTasks();
+                saveData();
+            }
+        }
+
+        function toggleSubTask(id) {
+            if (selectedTaskId === null) return;
+            const task = mainTasks.find(t => t.id === selectedTaskId);
+            if (!task) return;
+            const subtask = task.subtasks.find(st => st.id === id);
+            if (subtask) {
+                subtask.completed = !subtask.completed;
+                renderSubTasks();
+                saveData();
+            }
+        }
+
+        function deleteMainTask(id) {
+            mainTasks = mainTasks.filter(t => t.id !== id);
+            if (selectedTaskId === id) {
+                selectedTaskId = null;
+                renderSubTasks();
+            }
+            renderMainTasks();
+            saveData();
+        }
+
+        function deleteSubTask(id) {
+            if (selectedTaskId === null) return;
+            const task = mainTasks.find(t => t.id === selectedTaskId);
+            if (!task) return;
+            task.subtasks = task.subtasks.filter(st => st.id !== id);
+            renderSubTasks();
+            saveData();
+        }
+
+        function selectMainTask(id) {
+            selectedTaskId = id;
+            renderMainTasks();
+            renderSubTasks();
+        }
+
+        function renderMainTasks() {
+            const list = document.getElementById('main-task-list');
+            const empty = document.getElementById('main-empty');
+            if (mainTasks.length === 0) {
+                list.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            list.style.display = 'block';
+            empty.style.display = 'none';
+            list.innerHTML = '';
+            mainTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'task-item' + (task.completed ? ' completed' : '') + (task.id === selectedTaskId ? ' active' : '');
+                li.onclick = (e) => {
+                    if (e.target.type !== 'checkbox' && !e.target.classList.contains('delete-btn')) {
+                        selectMainTask(task.id);
+                    }
+                };
+                const timeSpentStr = task.timeSpent > 0 ? `<span class="task-time">(${formatTime(task.timeSpent)})</span>` : '';
+                li.innerHTML = `
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} 
+                           onchange="toggleMainTask(${task.id})" onclick="event.stopPropagation()">
+                    <label>${task.text}${timeSpentStr}</label>
+                    <button class="delete-btn" onclick="event.stopPropagation(); deleteMainTask(${task.id})">×</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function renderSubTasks() {
+            const section = document.getElementById('subtask-section');
+            const list = document.getElementById('sub-task-list');
+            const empty = document.getElementById('sub-empty');
+            if (selectedTaskId === null) {
+                section.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            const task = mainTasks.find(t => t.id === selectedTaskId);
+            if (!task) {
+                selectedTaskId = null;
+                section.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            section.style.display = 'block';
+            empty.style.display = 'none';
+            list.innerHTML = '';
+            task.subtasks.forEach(subtask => {
+                const li = document.createElement('li');
+                li.className = 'task-item subtask-item' + (subtask.completed ? ' completed' : '');
+                li.innerHTML = `
+                    <input type="checkbox" ${subtask.completed ? 'checked' : ''} 
+                           onchange="toggleSubTask(${subtask.id})">
+                    <label>${subtask.text}</label>
+                    <button class="delete-btn" onclick="deleteSubTask(${subtask.id})">×</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        btnPomodoroTop.addEventListener('click', () => switchMode('pomodoro'));
+        btnBreakTop.addEventListener('click', () => switchMode('break'));
+        btnLongBreakTop.addEventListener('click', () => switchMode('long-break'));
+
+        btnStart.addEventListener('click', () => {
+            if (isRunning) {
+                stopTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        btnReset.addEventListener('click', resetTimer);
+        btnSettings.addEventListener('click', () => {
+            settingsPanel.classList.toggle('hidden');
+        });
+
+        document.getElementById('btn-decrease-pomodoro').addEventListener('click', () => {
+            const current = parseInt(inputPomorodoDuration.value);
+            if (current > 1) {
+                inputPomorodoDuration.value = current - 1;
+                if (currentMode === 'pomodoro') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-increase-pomodoro').addEventListener('click', () => {
+            const current = parseInt(inputPomorodoDuration.value);
+            if (current < 90) {
+                inputPomorodoDuration.value = current + 1;
+                if (currentMode === 'pomodoro') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-decrease-break').addEventListener('click', () => {
+            const current = parseInt(inputBreakDuration.value);
+            if (current > 1) {
+                inputBreakDuration.value = current - 1;
+                if (currentMode === 'break') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-increase-break').addEventListener('click', () => {
+            const current = parseInt(inputBreakDuration.value);
+            if (current < 30) {
+                inputBreakDuration.value = current + 1;
+                if (currentMode === 'break') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-decrease-long-break').addEventListener('click', () => {
+            const current = parseInt(inputLongBreakDuration.value);
+            if (current > 1) {
+                inputLongBreakDuration.value = current - 1;
+                if (currentMode === 'long-break') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-increase-long-break').addEventListener('click', () => {
+            const current = parseInt(inputLongBreakDuration.value);
+            if (current < 60) {
+                inputLongBreakDuration.value = current + 1;
+                if (currentMode === 'long-break') resetTimer();
+            }
+        });
+
+        inputPomorodoDuration.addEventListener('change', () => {
+            if (currentMode === 'pomodoro') resetTimer();
+        });
+
+        inputBreakDuration.addEventListener('change', () => {
+            if (currentMode === 'break') resetTimer();
+        });
+
+        inputLongBreakDuration.addEventListener('change', () => {
+            if (currentMode === 'long-break') resetTimer();
+        });
+
+        document.getElementById('main-task-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addMainTask();
+        });
+
+        document.getElementById('sub-task-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addSubTask();
+        });
+
+        // Initialize alarm volume
+        alarmAudio.volume = alarmVolumeInput.value / 100;
+
+        loadData();
+        updateDisplay();
+        renderMainTasks();
+        renderSubTasks();
+    </script>
+</body>
+</html>
