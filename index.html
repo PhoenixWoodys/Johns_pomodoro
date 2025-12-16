@@ -694,6 +694,15 @@
                 </div>
 
                 <div class="file-input-group">
+                    <label>Import / Export</label>
+                    <button id="btn-export-stats" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">📊 Exporter statistiques (CSV)</button>
+                    <button id="btn-export-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">💾 Exporter tâches (CSV)</button>
+                    <input type="file" id="import-tasks-file" accept=".csv" style="display: none;">
+                    <button id="btn-import-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem;">📂 Importer tâches (CSV)</button>
+                    <div style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Sauvegardez et chargez vos tâches et statistiques</div>
+                </div>
+
+                <div class="file-input-group">
                     <label>Réinitialisation</label>
                     <button id="btn-reset-all" class="btn-ghost" style="width: 100%; padding: 0.75rem; background: rgba(239, 68, 68, 0.2);">🗑️ Réinitialiser tout</button>
                     <div style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Supprime toutes les tâches et remet les compteurs à zéro</div>
@@ -846,6 +855,10 @@
         const btnStats = document.getElementById('btn-stats');
         const statsModal = document.getElementById('stats-modal');
         const btnCloseStats = document.getElementById('btn-close-stats');
+        const btnExportStats = document.getElementById('btn-export-stats');
+        const btnExportTasks = document.getElementById('btn-export-tasks');
+        const btnImportTasks = document.getElementById('btn-import-tasks');
+        const importTasksFile = document.getElementById('import-tasks-file');
 
         // Generate simple bell sound
         function generateBellSound() {
@@ -954,6 +967,9 @@
 
             youtubeLoaded = true;
             youtubeContainer.classList.remove('hidden');
+
+            // Save YouTube URL to localStorage
+            localStorage.setItem('youtubeUrl', url);
         });
 
         function onPlayerReady(event) {
@@ -1019,7 +1035,7 @@
                     console.error('Erreur de chargement des données:', e);
                 }
             }
-            
+
             // Load background image
             const savedBg = localStorage.getItem('customBackground');
             if (savedBg) {
@@ -1029,7 +1045,7 @@
                 document.head.appendChild(style);
                 document.body.classList.add('custom-background');
             }
-            
+
             // Load settings
             const savedSettings = localStorage.getItem('pomodoroSettings');
             if (savedSettings) {
@@ -1044,6 +1060,12 @@
                 } catch (e) {
                     console.error('Erreur de chargement des paramètres:', e);
                 }
+            }
+
+            // Load YouTube URL
+            const savedYoutubeUrl = localStorage.getItem('youtubeUrl');
+            if (savedYoutubeUrl) {
+                youtubeUrlInput.value = savedYoutubeUrl;
             }
         }
 
@@ -1241,13 +1263,15 @@
         });
 
         btnResetAll.addEventListener('click', () => {
-            if (confirm('⚠️ Êtes-vous sûr de vouloir tout réinitialiser ?\n\nCela supprimera :\n• Toutes les tâches et sous-tâches\n• Tous les temps enregistrés\n• Le compteur de sessions\n\nCette action est irréversible.')) {
+            if (confirm('⚠️ Êtes-vous sûr de vouloir tout réinitialiser ?\n\nCela supprimera :\n• Toutes les tâches et sous-tâches\n• Tous les temps enregistrés\n• Le compteur de sessions\n• L\'URL YouTube sauvegardée\n\nCette action est irréversible.')) {
                 if (isRunning) stopTimer();
                 mainTasks = [];
                 selectedTaskId = null;
                 taskIdCounter = 0;
                 sessionCount = 1;
                 sessionCountEl.textContent = 'Session #1';
+                youtubeUrlInput.value = '';
+                localStorage.removeItem('youtubeUrl');
                 renderMainTasks();
                 renderSubTasks();
                 saveData();
@@ -1671,6 +1695,175 @@
 
         document.getElementById('sub-task-input').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') addSubTask();
+        });
+
+        // Export statistics to CSV
+        function exportStatisticsCSV() {
+            const pomorodoDuration = parseInt(inputPomorodoDuration.value) || 25;
+            let csv = 'Tâche,Temps total (min),Sessions,Complétée,Sous-tâches complétées,Total sous-tâches\n';
+
+            mainTasks.forEach(task => {
+                const timeSpent = task.timeSpent || 0;
+                const sessions = Math.floor(timeSpent / pomorodoDuration);
+                const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                const totalSubtasks = task.subtasks.length;
+                const completed = task.completed ? 'Oui' : 'Non';
+
+                // Escape commas and quotes in task text
+                const taskText = `"${task.text.replace(/"/g, '""')}"`;
+
+                csv += `${taskText},${timeSpent},${sessions},${completed},${completedSubtasks},${totalSubtasks}\n`;
+            });
+
+            // Add summary row
+            const totalTime = mainTasks.reduce((sum, task) => sum + (task.timeSpent || 0), 0);
+            const totalSessions = sessionCount - 1;
+            const completedTasks = mainTasks.filter(t => t.completed).length;
+
+            csv += `\nRÉSUMÉ\n`;
+            csv += `Temps total,${totalTime},${totalSessions},,${completedTasks},${mainTasks.length}\n`;
+
+            downloadCSV(csv, 'pomodoro-statistiques.csv');
+        }
+
+        // Export tasks to CSV
+        function exportTasksCSV() {
+            let csv = 'Type,ID,Texte,Complétée,Temps passé (min),ID parent\n';
+
+            mainTasks.forEach(task => {
+                const taskText = `"${task.text.replace(/"/g, '""')}"`;
+                const completed = task.completed ? '1' : '0';
+                const timeSpent = task.timeSpent || 0;
+
+                csv += `Tâche,${task.id},${taskText},${completed},${timeSpent},\n`;
+
+                // Add subtasks
+                task.subtasks.forEach(subtask => {
+                    const subtaskText = `"${subtask.text.replace(/"/g, '""')}"`;
+                    const subtaskCompleted = subtask.completed ? '1' : '0';
+
+                    csv += `Sous-tâche,${subtask.id},${subtaskText},${subtaskCompleted},0,${task.id}\n`;
+                });
+            });
+
+            downloadCSV(csv, 'pomodoro-taches.csv');
+        }
+
+        // Import tasks from CSV
+        function importTasksCSV(csvContent) {
+            try {
+                const lines = csvContent.split('\n');
+                const newTasks = [];
+                const taskMap = new Map(); // Map ID -> task object
+
+                // Skip header
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+
+                    // Parse CSV line (handling quoted values)
+                    const matches = line.match(/("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*)/);
+                    if (!matches) continue;
+
+                    const type = matches[1].replace(/^"|"$/g, '');
+                    const id = parseInt(matches[2].replace(/^"|"$/g, ''));
+                    const text = matches[3].replace(/^"|"$/g, '').replace(/""/g, '"');
+                    const completed = matches[4].replace(/^"|"$/g, '') === '1';
+                    const timeSpent = parseInt(matches[5].replace(/^"|"$/g, '')) || 0;
+                    const parentId = matches[6].replace(/^"|"$/g, '');
+
+                    if (type === 'Tâche') {
+                        const newTask = {
+                            id: taskIdCounter++,
+                            text: text,
+                            completed: completed,
+                            subtasks: [],
+                            timeSpent: timeSpent
+                        };
+                        newTasks.push(newTask);
+                        taskMap.set(id, newTask);
+                    } else if (type === 'Sous-tâche') {
+                        const parentOriginalId = parseInt(parentId);
+                        const parentTask = taskMap.get(parentOriginalId);
+                        if (parentTask) {
+                            parentTask.subtasks.push({
+                                id: taskIdCounter++,
+                                text: text,
+                                completed: completed
+                            });
+                        }
+                    }
+                }
+
+                if (newTasks.length > 0) {
+                    const confirmMsg = `Voulez-vous importer ${newTasks.length} tâche(s) ?\n\n` +
+                                      `Options :\n` +
+                                      `• OK : Ajouter aux tâches existantes\n` +
+                                      `• Annuler : Annuler l'import`;
+
+                    if (confirm(confirmMsg)) {
+                        // Add to existing tasks
+                        mainTasks.push(...newTasks);
+                        renderMainTasks();
+                        renderSubTasks();
+                        saveData();
+                        alert(`✅ ${newTasks.length} tâche(s) importée(s) avec succès !`);
+                    }
+                } else {
+                    alert('❌ Aucune tâche valide trouvée dans le fichier CSV');
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'import:', error);
+                alert('❌ Erreur lors de l\'import du fichier CSV. Vérifiez le format du fichier.');
+            }
+        }
+
+        // Helper function to download CSV
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Event listeners for import/export
+        btnExportStats.addEventListener('click', () => {
+            if (mainTasks.length === 0) {
+                alert('⚠️ Aucune donnée à exporter. Créez d\'abord des tâches.');
+                return;
+            }
+            exportStatisticsCSV();
+        });
+
+        btnExportTasks.addEventListener('click', () => {
+            if (mainTasks.length === 0) {
+                alert('⚠️ Aucune tâche à exporter. Créez d\'abord des tâches.');
+                return;
+            }
+            exportTasksCSV();
+        });
+
+        btnImportTasks.addEventListener('click', () => {
+            importTasksFile.click();
+        });
+
+        importTasksFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    importTasksCSV(event.target.result);
+                    // Reset file input
+                    importTasksFile.value = '';
+                };
+                reader.readAsText(file);
+            }
         });
 
         // Initialize alarm volume
