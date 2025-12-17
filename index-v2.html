@@ -1,0 +1,1963 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>25:00 - Focus Timer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-card: #1e1e1e;
+            --bg-hover: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent-primary: #ffffff;
+            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --border-color: #2a2a2a;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+            --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        body {
+            font-family: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background Image */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('default_background.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.15;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body.custom-background::before {
+            opacity: 0.2;
+        }
+
+        /* Main Container */
+        .app-container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Header */
+        .app-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .app-title {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            font-weight: 400;
+        }
+
+        /* Mode Tabs */
+        .mode-tabs {
+            display: inline-flex;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 4px;
+            gap: 4px;
+            margin-top: 1.5rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .mode-tab {
+            padding: 0.75rem 2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .mode-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .mode-tab.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        /* Main Grid Layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr 300px;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        /* Timer Section */
+        .timer-section {
+            text-align: center;
+        }
+
+        .session-info {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .timer-card {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 3rem 2rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .timer-circle-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 2rem;
+        }
+
+        .timer-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -2px;
+        }
+
+        .timer-status {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            font-weight: 500;
+        }
+
+        /* Controls */
+        .timer-controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            font-size: 1rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255,255,255,0.2);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .btn-icon {
+            width: 48px;
+            height: 48px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-top: 1rem;
+        }
+
+        /* Task Cards */
+        .task-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .task-card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .task-card-icon {
+            font-size: 1.5rem;
+        }
+
+        .task-card-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        /* Task Input */
+        .task-input-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .task-input {
+            flex: 1;
+            padding: 0.85rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: inherit;
+            transition: all 0.2s ease;
+        }
+
+        .task-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            background: var(--bg-hover);
+        }
+
+        .task-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn-add-task {
+            width: 42px;
+            height: 42px;
+            padding: 0;
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5rem;
+            font-weight: 300;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-add-task:hover {
+            transform: scale(1.05);
+        }
+
+        /* Task List */
+        .task-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .task-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .task-item:hover {
+            background: var(--bg-hover);
+            border-color: var(--text-muted);
+        }
+
+        .task-item.active {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.1);
+        }
+
+        .task-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--accent-primary);
+        }
+
+        .task-text {
+            flex: 1;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .task-item.completed .task-text {
+            text-decoration: line-through;
+            opacity: 0.4;
+        }
+
+        .task-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .task-delete {
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 1.2rem;
+            transition: all 0.2s ease;
+        }
+
+        .task-delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Settings Panel */
+        .settings-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .settings-overlay.hidden {
+            display: none;
+        }
+
+        .settings-panel {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 2.5rem;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .settings-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .settings-section {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .settings-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .settings-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .settings-input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .settings-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .settings-input[type="number"] {
+            width: 100px;
+            text-align: center;
+        }
+
+        .duration-control {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preset-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+            justify-content: center;
+        }
+
+        .btn-preset {
+            padding: 0.5rem 1.25rem;
+            font-size: 0.85rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .range-control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .range-input {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-secondary);
+            border-radius: 3px;
+            outline: none;
+            appearance: none;
+        }
+
+        .range-input::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .range-value {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        /* Stats Modal */
+        .stats-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .stats-modal.hidden {
+            display: none;
+        }
+
+        .stats-content {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 2.5rem;
+            max-width: 900px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .stats-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0.5rem 0;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* YouTube Player */
+        .youtube-player {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.25rem;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+            z-index: 50;
+            max-width: 400px;
+        }
+
+        .youtube-player.hidden {
+            display: none;
+        }
+
+        .youtube-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .youtube-title {
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .youtube-controls-header {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .timer-section {
+                order: -1;
+            }
+
+            .youtube-player {
+                position: static;
+                margin: 1.5rem auto 0;
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app-container {
+                padding: 1rem;
+            }
+
+            .mode-tab {
+                padding: 0.6rem 1.25rem;
+                font-size: 0.85rem;
+            }
+
+            .timer-circle-container {
+                width: 240px;
+                height: 240px;
+            }
+
+            .timer-display {
+                font-size: 3rem;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <h1 class="app-title">Focus Timer</h1>
+            <p class="app-subtitle">Stay productive with the Pomodoro technique</p>
+
+            <!-- Mode Tabs -->
+            <div class="mode-tabs">
+                <button class="mode-tab active" id="tab-pomodoro">Pomodoro</button>
+                <button class="mode-tab" id="tab-short-break">Short Break</button>
+                <button class="mode-tab" id="tab-long-break">Long Break</button>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+            <!-- Tasks Left -->
+            <div class="task-card">
+                <div class="task-card-header">
+                    <span class="task-card-icon">📋</span>
+                    <h2 class="task-card-title">Tasks</h2>
+                </div>
+                <div class="task-input-wrapper">
+                    <input type="text" class="task-input" id="main-task-input" placeholder="Add new task...">
+                    <button class="btn-add-task" onclick="addMainTask()">+</button>
+                </div>
+                <ul class="task-list" id="main-task-list"></ul>
+                <div class="empty-state" id="main-empty">No tasks yet</div>
+            </div>
+
+            <!-- Timer Center -->
+            <div class="timer-section">
+                <div class="session-info" id="session-info">Session #1</div>
+
+                <div class="timer-card">
+                    <div class="timer-circle-container">
+                        <svg width="280" height="280" style="transform: rotate(-90deg);">
+                            <circle cx="140" cy="140" r="130" stroke="rgba(255,255,255,0.05)" stroke-width="6" fill="none"/>
+                            <circle id="progress-ring" cx="140" cy="140" r="130" stroke="white" stroke-width="6" fill="none"
+                                    stroke-dasharray="816.81" stroke-dashoffset="0" stroke-linecap="round"
+                                    style="transition: stroke-dashoffset 1s linear;"/>
+                        </svg>
+                        <div class="timer-display" id="timer-display">25:00</div>
+                    </div>
+                    <div class="timer-status" id="timer-status">Ready to focus</div>
+
+                    <div class="timer-controls">
+                        <button class="btn btn-primary" id="btn-start">Start</button>
+                        <button class="btn btn-secondary" id="btn-reset">Reset</button>
+                    </div>
+
+                    <div class="controls-row">
+                        <button class="btn btn-secondary btn-icon" id="btn-stats" title="Statistics">📊</button>
+                        <button class="btn btn-secondary btn-icon" id="btn-settings" title="Settings">⚙️</button>
+                        <button class="btn btn-secondary btn-icon" id="btn-music" title="Music" style="display: none;">🎵</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subtasks Right -->
+            <div class="task-card">
+                <div class="task-card-header">
+                    <span class="task-card-icon">📝</span>
+                    <h2 class="task-card-title">Subtasks</h2>
+                </div>
+                <div id="subtask-section" style="display: none;">
+                    <div class="task-input-wrapper">
+                        <input type="text" class="task-input" id="sub-task-input" placeholder="Add subtask...">
+                        <button class="btn-add-task" onclick="addSubTask()">+</button>
+                    </div>
+                    <ul class="task-list" id="sub-task-list"></ul>
+                </div>
+                <div class="empty-state" id="sub-empty">Select a task to see subtasks</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div class="settings-overlay hidden" id="settings-overlay">
+        <div class="settings-panel">
+            <div class="settings-header">
+                <h2 class="settings-title">Settings</h2>
+                <button class="btn btn-secondary btn-icon" id="btn-close-settings">×</button>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Pomodoro Duration</label>
+                <div class="duration-control">
+                    <button class="btn btn-secondary btn-icon" id="btn-decrease-pomodoro">−</button>
+                    <input type="number" class="settings-input" id="input-pomodoro" value="25" min="1" max="90">
+                    <button class="btn btn-secondary btn-icon" id="btn-increase-pomodoro">+</button>
+                </div>
+                <div class="preset-group">
+                    <button class="btn btn-preset" onclick="setPomodoro(25)">25m</button>
+                    <button class="btn btn-preset" onclick="setPomodoro(45)">45m</button>
+                    <button class="btn btn-preset" onclick="setPomodoro(60)">60m</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Short Break Duration</label>
+                <div class="duration-control">
+                    <button class="btn btn-secondary btn-icon" id="btn-decrease-short">−</button>
+                    <input type="number" class="settings-input" id="input-short-break" value="5" min="1" max="30">
+                    <button class="btn btn-secondary btn-icon" id="btn-increase-short">+</button>
+                </div>
+                <div class="preset-group">
+                    <button class="btn btn-preset" onclick="setShortBreak(5)">5m</button>
+                    <button class="btn btn-preset" onclick="setShortBreak(10)">10m</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Long Break Duration</label>
+                <div class="duration-control">
+                    <button class="btn btn-secondary btn-icon" id="btn-decrease-long">−</button>
+                    <input type="number" class="settings-input" id="input-long-break" value="15" min="1" max="60">
+                    <button class="btn btn-secondary btn-icon" id="btn-increase-long">+</button>
+                </div>
+                <div class="preset-group">
+                    <button class="btn btn-preset" onclick="setLongBreak(15)">15m</button>
+                    <button class="btn btn-preset" onclick="setLongBreak(30)">30m</button>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Alarm Sound</label>
+                <select class="settings-input" id="alarm-select">
+                    <option value="default">Default Alarm</option>
+                    <option value="bell">🔔 Bell</option>
+                    <option value="chime">🎵 Chime</option>
+                    <option value="custom">Custom File</option>
+                </select>
+                <input type="file" id="alarm-file" accept="audio/*" style="display: none; margin-top: 0.75rem;" class="settings-input">
+                <div class="range-control">
+                    <span>🔔</span>
+                    <input type="range" class="range-input" id="alarm-volume" min="0" max="100" value="100">
+                    <span class="range-value" id="alarm-volume-display">100%</span>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Background Music</label>
+                <input type="file" class="settings-input" id="ambient-file" accept="audio/*">
+                <div class="range-control">
+                    <span>🔊</span>
+                    <input type="range" class="range-input" id="ambient-volume" min="0" max="100" value="50">
+                    <span class="range-value" id="volume-display">50%</span>
+                </div>
+                <button class="btn btn-secondary" id="btn-toggle-ambient" style="width: 100%; margin-top: 0.75rem;">⏸️ Pause Music</button>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">YouTube URL</label>
+                <input type="text" class="settings-input" id="youtube-url" placeholder="https://youtube.com/watch?v=...">
+                <button class="btn btn-secondary" id="btn-load-youtube" style="width: 100%; margin-top: 0.75rem;">Load YouTube</button>
+                <button class="btn btn-secondary" id="btn-toggle-youtube" style="width: 100%; margin-top: 0.5rem;">Show/Hide Player</button>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Background Image</label>
+                <input type="file" class="settings-input" id="background-file" accept="image/*">
+                <button class="btn btn-secondary" id="btn-remove-bg" style="width: 100%; margin-top: 0.75rem;">Remove Background</button>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Import / Export</label>
+                <button class="btn btn-secondary" id="btn-export-stats" style="width: 100%; margin-bottom: 0.5rem;">📊 Export Statistics (CSV)</button>
+                <button class="btn btn-secondary" id="btn-export-tasks" style="width: 100%; margin-bottom: 0.5rem;">💾 Export Tasks (CSV)</button>
+                <input type="file" id="import-tasks-file" accept=".csv" style="display: none;">
+                <button class="btn btn-secondary" id="btn-import-tasks" style="width: 100%;">📂 Import Tasks (CSV)</button>
+            </div>
+
+            <div class="settings-section">
+                <label class="settings-label">Reset</label>
+                <button class="btn btn-secondary" id="btn-reset-all" style="width: 100%; background: rgba(239, 68, 68, 0.1); color: #ef4444;">🗑️ Reset Everything</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div class="stats-modal hidden" id="stats-modal">
+        <div class="stats-content">
+            <div class="stats-header">
+                <h2 class="stats-title">Statistics</h2>
+                <button class="btn btn-secondary btn-icon" id="btn-close-stats">×</button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Sessions</div>
+                    <div class="stat-value" id="stat-total-sessions">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Time</div>
+                    <div class="stat-value" id="stat-total-time">0h</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Completed</div>
+                    <div class="stat-value" id="stat-completed-tasks">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Active</div>
+                    <div class="stat-value" id="stat-active-tasks">0</div>
+                </div>
+            </div>
+
+            <div>
+                <h3 style="margin-bottom: 1rem; font-weight: 700;">Time per Task</h3>
+                <div id="task-stats-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- YouTube Player -->
+    <div class="youtube-player hidden" id="youtube-container">
+        <div class="youtube-header">
+            <h3 class="youtube-title">🎵 YouTube</h3>
+            <div class="youtube-controls-header">
+                <button class="btn btn-secondary btn-icon" id="btn-minimize-youtube" style="width: 32px; height: 32px; font-size: 0.9rem;">_</button>
+                <button class="btn btn-secondary btn-icon" id="btn-close-youtube" style="width: 32px; height: 32px; font-size: 0.9rem;">×</button>
+            </div>
+        </div>
+        <div id="youtube-player-wrapper">
+            <div id="youtube-player"></div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem; justify-content: center;">
+            <button class="btn btn-secondary btn-icon" id="btn-youtube-prev">⏮️</button>
+            <button class="btn btn-secondary btn-icon" id="btn-youtube-play">▶️</button>
+            <button class="btn btn-secondary btn-icon" id="btn-youtube-next">⏭️</button>
+        </div>
+    </div>
+
+    <audio id="alarm-audio" preload="auto">
+        <source src="alarm.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="ambient-audio" loop preload="auto"></audio>
+
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        console.log('Focus Timer v2.0 - Design inspired by Focus by MDS');
+
+        // Timer variables
+        let timerInterval = null;
+        let timeRemaining = 25 * 60;
+        let totalTime = 25 * 60;
+        let isRunning = false;
+        let sessionCount = 1;
+        let currentMode = 'pomodoro';
+
+        // To-Do variables
+        let mainTasks = [];
+        let selectedTaskId = null;
+        let taskIdCounter = 0;
+
+        // Ambient music variables
+        let ambientPlaying = false;
+        let ambientMusicLoaded = false;
+        let originalAmbientVolume = 0.5;
+
+        // YouTube variables
+        let player;
+        let youtubeLoaded = false;
+        let youtubeMinimized = false;
+
+        // DOM Elements
+        const timerDisplay = document.getElementById('timer-display');
+        const timerStatus = document.getElementById('timer-status');
+        const progressRing = document.getElementById('progress-ring');
+        const btnStart = document.getElementById('btn-start');
+        const btnReset = document.getElementById('btn-reset');
+        const btnSettings = document.getElementById('btn-settings');
+        const btnCloseSettings = document.getElementById('btn-close-settings');
+        const tabPomodoro = document.getElementById('tab-pomodoro');
+        const tabShortBreak = document.getElementById('tab-short-break');
+        const tabLongBreak = document.getElementById('tab-long-break');
+        const settingsOverlay = document.getElementById('settings-overlay');
+        const inputPomodoro = document.getElementById('input-pomodoro');
+        const inputShortBreak = document.getElementById('input-short-break');
+        const inputLongBreak = document.getElementById('input-long-break');
+        const sessionInfo = document.getElementById('session-info');
+        const alarmAudio = document.getElementById('alarm-audio');
+        const alarmSelect = document.getElementById('alarm-select');
+        const alarmFileInput = document.getElementById('alarm-file');
+        const alarmVolumeInput = document.getElementById('alarm-volume');
+        const alarmVolumeDisplay = document.getElementById('alarm-volume-display');
+        const backgroundFileInput = document.getElementById('background-file');
+        const btnRemoveBg = document.getElementById('btn-remove-bg');
+        const ambientAudio = document.getElementById('ambient-audio');
+        const ambientFileInput = document.getElementById('ambient-file');
+        const ambientVolumeInput = document.getElementById('ambient-volume');
+        const volumeDisplay = document.getElementById('volume-display');
+        const btnToggleAmbient = document.getElementById('btn-toggle-ambient');
+        const btnMusic = document.getElementById('btn-music');
+        const btnResetAll = document.getElementById('btn-reset-all');
+        const youtubeUrlInput = document.getElementById('youtube-url');
+        const btnLoadYoutube = document.getElementById('btn-load-youtube');
+        const btnToggleYoutube = document.getElementById('btn-toggle-youtube');
+        const youtubeContainer = document.getElementById('youtube-container');
+        const btnMinimizeYoutube = document.getElementById('btn-minimize-youtube');
+        const btnCloseYoutube = document.getElementById('btn-close-youtube');
+        const btnYoutubePrev = document.getElementById('btn-youtube-prev');
+        const btnYoutubePlay = document.getElementById('btn-youtube-play');
+        const btnYoutubeNext = document.getElementById('btn-youtube-next');
+        const btnStats = document.getElementById('btn-stats');
+        const statsModal = document.getElementById('stats-modal');
+        const btnCloseStats = document.getElementById('btn-close-stats');
+        const btnExportStats = document.getElementById('btn-export-stats');
+        const btnExportTasks = document.getElementById('btn-export-tasks');
+        const btnImportTasks = document.getElementById('btn-import-tasks');
+        const importTasksFile = document.getElementById('import-tasks-file');
+
+        // Generate simple bell sound
+        function generateBellSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const duration = 2;
+            const sampleRate = audioContext.sampleRate;
+            const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate);
+            const channel = buffer.getChannelData(0);
+
+            for (let i = 0; i < channel.length; i++) {
+                const t = i / sampleRate;
+                channel[i] = Math.sin(2 * Math.PI * 800 * t) * Math.exp(-3 * t);
+            }
+
+            return buffer;
+        }
+
+        // Generate chime sound
+        function generateChimeSound() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const duration = 2;
+            const sampleRate = audioContext.sampleRate;
+            const buffer = audioContext.createBuffer(1, duration * sampleRate, sampleRate);
+            const channel = buffer.getChannelData(0);
+
+            for (let i = 0; i < channel.length; i++) {
+                const t = i / sampleRate;
+                channel[i] = (Math.sin(2 * Math.PI * 523 * t) + Math.sin(2 * Math.PI * 659 * t)) * 0.5 * Math.exp(-2 * t);
+            }
+
+            return buffer;
+        }
+
+        // Alarm select handler
+        alarmSelect.addEventListener('change', (e) => {
+            const value = e.target.value;
+            if (value === 'custom') {
+                alarmFileInput.style.display = 'block';
+            } else {
+                alarmFileInput.style.display = 'none';
+                if (value === 'default') {
+                    alarmAudio.src = 'alarm.mp3';
+                }
+            }
+            saveSettings();
+        });
+
+        // YouTube API Ready
+        function onYouTubeIframeAPIReady() {
+            console.log('YouTube API Ready');
+        }
+
+        function extractVideoId(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function extractPlaylistId(url) {
+            const regExp = /[?&]list=([^#&?]+)/;
+            const match = url.match(regExp);
+            return match ? match[1] : null;
+        }
+
+        btnLoadYoutube.addEventListener('click', () => {
+            const url = youtubeUrlInput.value.trim();
+            if (!url) {
+                alert('Please enter a YouTube URL');
+                return;
+            }
+
+            const videoId = extractVideoId(url);
+            const playlistId = extractPlaylistId(url);
+
+            if (!videoId && !playlistId) {
+                alert('Invalid YouTube URL');
+                return;
+            }
+
+            if (player) {
+                player.destroy();
+            }
+
+            const playerVars = {
+                autoplay: 0,
+                controls: 1,
+                modestbranding: 1,
+                rel: 0
+            };
+
+            if (playlistId) {
+                playerVars.list = playlistId;
+                playerVars.listType = 'playlist';
+            }
+
+            player = new YT.Player('youtube-player', {
+                height: '200',
+                width: '100%',
+                videoId: videoId || undefined,
+                playerVars: playerVars,
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+
+            youtubeLoaded = true;
+            youtubeContainer.classList.remove('hidden');
+            localStorage.setItem('youtubeUrl', url);
+        });
+
+        function onPlayerReady(event) {
+            console.log('Player ready');
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                btnYoutubePlay.textContent = '⏸️';
+            } else {
+                btnYoutubePlay.textContent = '▶️';
+            }
+        }
+
+        btnToggleYoutube.addEventListener('click', () => {
+            if (!youtubeLoaded) {
+                alert('Please load a YouTube video/playlist first');
+                return;
+            }
+            youtubeContainer.classList.toggle('hidden');
+        });
+
+        btnMinimizeYoutube.addEventListener('click', () => {
+            youtubeMinimized = !youtubeMinimized;
+            const wrapper = document.getElementById('youtube-player-wrapper');
+            if (youtubeMinimized) {
+                wrapper.style.display = 'none';
+                btnMinimizeYoutube.textContent = '□';
+            } else {
+                wrapper.style.display = 'block';
+                btnMinimizeYoutube.textContent = '_';
+            }
+        });
+
+        btnCloseYoutube.addEventListener('click', () => {
+            youtubeContainer.classList.add('hidden');
+        });
+
+        btnYoutubePlay.addEventListener('click', () => {
+            if (!player) return;
+            const state = player.getPlayerState();
+            if (state === YT.PlayerState.PLAYING) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        });
+
+        btnYoutubePrev.addEventListener('click', () => {
+            if (player) player.previousVideo();
+        });
+
+        btnYoutubeNext.addEventListener('click', () => {
+            if (player) player.nextVideo();
+        });
+
+        // Load saved data
+        function loadData() {
+            const saved = localStorage.getItem('pomodoroData');
+            if (saved) {
+                try {
+                    const data = JSON.parse(saved);
+                    mainTasks = data.tasks || [];
+                    taskIdCounter = data.taskIdCounter || 0;
+                    sessionCount = data.sessionCount || 1;
+                    sessionInfo.textContent = `Session #${sessionCount}`;
+                    renderMainTasks();
+                } catch (e) {
+                    console.error('Error loading data:', e);
+                }
+            }
+
+            const savedBg = localStorage.getItem('customBackground');
+            if (savedBg) {
+                const style = document.createElement('style');
+                style.id = 'custom-bg-style';
+                style.textContent = `body::before { background-image: url(${savedBg}) !important; }`;
+                document.head.appendChild(style);
+                document.body.classList.add('custom-background');
+            }
+
+            const savedSettings = localStorage.getItem('pomodoroSettings');
+            if (savedSettings) {
+                try {
+                    const settings = JSON.parse(savedSettings);
+                    if (settings.alarmType) {
+                        alarmSelect.value = settings.alarmType;
+                        if (settings.alarmType === 'custom') {
+                            alarmFileInput.style.display = 'block';
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error loading settings:', e);
+                }
+            }
+
+            const savedYoutubeUrl = localStorage.getItem('youtubeUrl');
+            if (savedYoutubeUrl) {
+                youtubeUrlInput.value = savedYoutubeUrl;
+            }
+        }
+
+        function saveData() {
+            const data = {
+                tasks: mainTasks,
+                taskIdCounter: taskIdCounter,
+                sessionCount: sessionCount
+            };
+            localStorage.setItem('pomodoroData', JSON.stringify(data));
+        }
+
+        function saveSettings() {
+            const settings = {
+                alarmType: alarmSelect.value
+            };
+            localStorage.setItem('pomodoroSettings', JSON.stringify(settings));
+        }
+
+        function updateTitle() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            let modeStr = 'Focus';
+            if (currentMode === 'short-break') modeStr = 'Short Break';
+            else if (currentMode === 'long-break') modeStr = 'Long Break';
+            document.title = `${timeStr} - ${modeStr}`;
+        }
+
+        alarmVolumeInput.addEventListener('input', (e) => {
+            const volume = e.target.value;
+            alarmVolumeDisplay.textContent = `${volume}%`;
+            alarmAudio.volume = volume / 100;
+        });
+
+        alarmFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                alarmAudio.src = url;
+            }
+        });
+
+        ambientFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                ambientAudio.src = url;
+                ambientAudio.volume = ambientVolumeInput.value / 100;
+                ambientMusicLoaded = true;
+                btnToggleAmbient.textContent = '⏸️ Pause Music';
+                btnMusic.style.display = 'inline-flex';
+                btnMusic.textContent = '🎵';
+            }
+        });
+
+        ambientVolumeInput.addEventListener('input', (e) => {
+            const volume = e.target.value;
+            volumeDisplay.textContent = `${volume}%`;
+            ambientAudio.volume = volume / 100;
+            originalAmbientVolume = volume / 100;
+        });
+
+        function toggleAmbientMusic() {
+            if (!ambientMusicLoaded) {
+                alert('Please select an MP3 file in settings first');
+                return;
+            }
+
+            if (ambientPlaying) {
+                ambientAudio.pause();
+                btnToggleAmbient.textContent = '▶️ Resume Music';
+                btnMusic.textContent = '🔇';
+                ambientPlaying = false;
+            } else {
+                ambientAudio.play().catch(err => {
+                    console.error('Cannot play music:', err);
+                });
+                btnToggleAmbient.textContent = '⏸️ Pause Music';
+                btnMusic.textContent = '🎵';
+                ambientPlaying = true;
+            }
+        }
+
+        btnToggleAmbient.addEventListener('click', toggleAmbientMusic);
+        btnMusic.addEventListener('click', toggleAmbientMusic);
+
+        backgroundFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const style = document.createElement('style');
+                    style.id = 'custom-bg-style';
+                    const existingStyle = document.getElementById('custom-bg-style');
+                    if (existingStyle) existingStyle.remove();
+                    style.textContent = `body::before { background-image: url(${event.target.result}) !important; }`;
+                    document.head.appendChild(style);
+                    document.body.classList.add('custom-background');
+                    localStorage.setItem('customBackground', event.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        btnRemoveBg.addEventListener('click', () => {
+            const style = document.getElementById('custom-bg-style');
+            if (style) style.remove();
+            document.body.classList.remove('custom-background');
+            backgroundFileInput.value = '';
+            localStorage.removeItem('customBackground');
+        });
+
+        function updateStats() {
+            const totalSessions = sessionCount - 1;
+            const completedTasks = mainTasks.filter(t => t.completed).length;
+            const activeTasks = mainTasks.filter(t => !t.completed).length;
+            const totalTime = mainTasks.reduce((sum, task) => sum + (task.timeSpent || 0), 0);
+
+            document.getElementById('stat-total-sessions').textContent = totalSessions;
+            document.getElementById('stat-total-time').textContent = formatTime(totalTime);
+            document.getElementById('stat-completed-tasks').textContent = completedTasks;
+            document.getElementById('stat-active-tasks').textContent = activeTasks;
+
+            const taskStatsList = document.getElementById('task-stats-list');
+            taskStatsList.innerHTML = '';
+
+            const sortedTasks = [...mainTasks].sort((a, b) => (b.timeSpent || 0) - (a.timeSpent || 0));
+
+            if (sortedTasks.length === 0) {
+                taskStatsList.innerHTML = '<div style="text-align: center; opacity: 0.5; padding: 2rem;">No tasks yet</div>';
+            } else {
+                sortedTasks.forEach(task => {
+                    const timeSpent = task.timeSpent || 0;
+                    const sessions = Math.floor(timeSpent / (parseInt(inputPomodoro.value) || 25));
+                    const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                    const totalSubtasks = task.subtasks.length;
+
+                    const item = document.createElement('div');
+                    item.style.cssText = 'background: var(--bg-secondary); padding: 1rem; border-radius: 10px; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color);';
+                    item.innerHTML = `
+                        <div style="font-weight: 600;">${task.completed ? '✓ ' : ''}${task.text}</div>
+                        <div style="display: flex; gap: 1rem; font-size: 0.85rem; color: var(--text-secondary);">
+                            <span>⏱️ ${formatTime(timeSpent)}</span>
+                            <span>🍅 ${sessions}</span>
+                            ${totalSubtasks > 0 ? `<span>✓ ${completedSubtasks}/${totalSubtasks}</span>` : ''}
+                        </div>
+                    `;
+                    taskStatsList.appendChild(item);
+                });
+            }
+        }
+
+        btnStats.addEventListener('click', () => {
+            updateStats();
+            statsModal.classList.remove('hidden');
+        });
+
+        btnCloseStats.addEventListener('click', () => {
+            statsModal.classList.add('hidden');
+        });
+
+        statsModal.addEventListener('click', (e) => {
+            if (e.target === statsModal) {
+                statsModal.classList.add('hidden');
+            }
+        });
+
+        btnResetAll.addEventListener('click', () => {
+            if (confirm('⚠️ Are you sure you want to reset everything?\n\nThis will delete:\n• All tasks and subtasks\n• All recorded times\n• Session counter\n• YouTube URL\n\nThis action is irreversible.')) {
+                if (isRunning) stopTimer();
+                mainTasks = [];
+                selectedTaskId = null;
+                taskIdCounter = 0;
+                sessionCount = 1;
+                sessionInfo.textContent = 'Session #1';
+                youtubeUrlInput.value = '';
+                localStorage.removeItem('youtubeUrl');
+                renderMainTasks();
+                renderSubTasks();
+                saveData();
+                alert('✅ All data has been reset successfully!');
+            }
+        });
+
+        function switchMode(mode) {
+            if (isRunning) stopTimer();
+            currentMode = mode;
+            tabPomodoro.classList.remove('active');
+            tabShortBreak.classList.remove('active');
+            tabLongBreak.classList.remove('active');
+
+            if (mode === 'pomodoro') {
+                tabPomodoro.classList.add('active');
+                timerStatus.textContent = 'Ready to focus';
+            } else if (mode === 'short-break') {
+                tabShortBreak.classList.add('active');
+                timerStatus.textContent = 'Ready for a break';
+            } else if (mode === 'long-break') {
+                tabLongBreak.classList.add('active');
+                timerStatus.textContent = 'Ready for a long break';
+            }
+            resetTimer();
+        }
+
+        function updateDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            const progress = 1 - (timeRemaining / totalTime);
+            const offset = 816.81 * progress;
+            progressRing.style.strokeDashoffset = offset;
+            updateTitle();
+        }
+
+        function playAlarm() {
+            const alarmType = alarmSelect.value;
+
+            if (alarmType === 'bell' || alarmType === 'chime') {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const buffer = alarmType === 'bell' ? generateBellSound() : generateChimeSound();
+                const source = audioContext.createBufferSource();
+                source.buffer = buffer;
+
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = alarmVolumeInput.value / 100;
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                source.start(0);
+            } else {
+                alarmAudio.currentTime = 0;
+                alarmAudio.play().catch(err => {
+                    console.error('Cannot play alarm:', err);
+                });
+            }
+        }
+
+        function startTimer() {
+            if (isRunning) return;
+            isRunning = true;
+            btnStart.textContent = 'Pause';
+            btnStart.classList.remove('btn-primary');
+            btnStart.classList.add('btn-secondary');
+
+            if (currentMode === 'pomodoro') {
+                timerStatus.textContent = 'Focus time';
+            } else if (currentMode === 'short-break') {
+                timerStatus.textContent = 'Break time';
+            } else {
+                timerStatus.textContent = 'Long break time';
+            }
+
+            if (ambientMusicLoaded && !ambientPlaying) {
+                ambientAudio.play().catch(err => {
+                    console.error('Cannot play music:', err);
+                });
+                ambientPlaying = true;
+                btnToggleAmbient.textContent = '⏸️ Pause Music';
+                btnMusic.textContent = '🎵';
+            }
+
+            if (ambientPlaying) {
+                ambientAudio.volume = originalAmbientVolume;
+            }
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                if (timeRemaining <= 5 && timeRemaining > 0 && ambientPlaying) {
+                    const fadeRatio = timeRemaining / 5;
+                    ambientAudio.volume = originalAmbientVolume * fadeRatio * 0.2;
+                }
+                updateDisplay();
+                if (timeRemaining <= 0) {
+                    stopTimer();
+                    completeTimer();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            btnStart.textContent = 'Start';
+            btnStart.classList.remove('btn-secondary');
+            btnStart.classList.add('btn-primary');
+            timerStatus.textContent = 'Paused';
+            if (ambientPlaying) {
+                ambientAudio.pause();
+                ambientPlaying = false;
+                btnToggleAmbient.textContent = '▶️ Resume Music';
+                btnMusic.textContent = '🔇';
+            }
+        }
+
+        function resetTimer() {
+            stopTimer();
+            let duration;
+            if (currentMode === 'pomodoro') {
+                duration = parseInt(inputPomodoro.value) || 25;
+            } else if (currentMode === 'short-break') {
+                duration = parseInt(inputShortBreak.value) || 5;
+            } else {
+                duration = parseInt(inputLongBreak.value) || 15;
+            }
+            timeRemaining = duration * 60;
+            totalTime = duration * 60;
+            updateDisplay();
+            timerDisplay.style.color = '';
+            if (currentMode === 'pomodoro') {
+                timerStatus.textContent = 'Ready to focus';
+            } else if (currentMode === 'short-break') {
+                timerStatus.textContent = 'Ready for a break';
+            } else {
+                timerStatus.textContent = 'Ready for a long break';
+            }
+        }
+
+        function completeTimer() {
+            timerDisplay.style.color = '#10b981';
+            timerStatus.textContent = '🔔 Completed!';
+            playAlarm();
+            if (currentMode === 'pomodoro') {
+                sessionCount++;
+                sessionInfo.textContent = `Session #${sessionCount}`;
+                if (selectedTaskId !== null) {
+                    const task = mainTasks.find(t => t.id === selectedTaskId);
+                    if (task) {
+                        const duration = parseInt(inputPomodoro.value) || 25;
+                        task.timeSpent = (task.timeSpent || 0) + duration;
+                        renderMainTasks();
+                    }
+                }
+                saveData();
+            }
+            setTimeout(() => {
+                if (ambientPlaying) {
+                    ambientAudio.volume = originalAmbientVolume;
+                }
+                resetTimer();
+            }, 3000);
+        }
+
+        function setPomodoro(minutes) {
+            inputPomodoro.value = minutes;
+            if (currentMode === 'pomodoro') resetTimer();
+        }
+
+        function setShortBreak(minutes) {
+            inputShortBreak.value = minutes;
+            if (currentMode === 'short-break') resetTimer();
+        }
+
+        function setLongBreak(minutes) {
+            inputLongBreak.value = minutes;
+            if (currentMode === 'long-break') resetTimer();
+        }
+
+        function formatTime(minutes) {
+            if (minutes < 60) {
+                return `${minutes}min`;
+            }
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return mins > 0 ? `${hours}h${mins}` : `${hours}h`;
+        }
+
+        function addMainTask() {
+            const input = document.getElementById('main-task-input');
+            const text = input.value.trim();
+            if (text === '') return;
+            const task = {
+                id: taskIdCounter++,
+                text: text,
+                completed: false,
+                subtasks: [],
+                timeSpent: 0
+            };
+            mainTasks.push(task);
+            input.value = '';
+            renderMainTasks();
+            saveData();
+        }
+
+        function addSubTask() {
+            if (selectedTaskId === null) return;
+            const input = document.getElementById('sub-task-input');
+            const text = input.value.trim();
+            if (text === '') return;
+            const task = mainTasks.find(t => t.id === selectedTaskId);
+            if (!task) return;
+            const subtask = {
+                id: taskIdCounter++,
+                text: text,
+                completed: false
+            };
+            task.subtasks.push(subtask);
+            input.value = '';
+            renderSubTasks();
+            saveData();
+        }
+
+        function toggleMainTask(id) {
+            const task = mainTasks.find(t => t.id === id);
+            if (task) {
+                task.completed = !task.completed;
+                renderMainTasks();
+                saveData();
+            }
+        }
+
+        function toggleSubTask(id) {
+            if (selectedTaskId === null) return;
+            const task = mainTasks.find(t => t.id === selectedTaskId);
+            if (!task) return;
+            const subtask = task.subtasks.find(st => st.id === id);
+            if (subtask) {
+                subtask.completed = !subtask.completed;
+                renderSubTasks();
+                saveData();
+            }
+        }
+
+        function deleteMainTask(id) {
+            mainTasks = mainTasks.filter(t => t.id !== id);
+            if (selectedTaskId === id) {
+                selectedTaskId = null;
+                renderSubTasks();
+            }
+            renderMainTasks();
+            saveData();
+        }
+
+        function deleteSubTask(id) {
+            if (selectedTaskId === null) return;
+            const task = mainTasks.find(t => t.id === selectedTaskId);
+            if (!task) return;
+            task.subtasks = task.subtasks.filter(st => st.id !== id);
+            renderSubTasks();
+            saveData();
+        }
+
+        function selectMainTask(id) {
+            selectedTaskId = id;
+            renderMainTasks();
+            renderSubTasks();
+        }
+
+        function renderMainTasks() {
+            const list = document.getElementById('main-task-list');
+            const empty = document.getElementById('main-empty');
+            if (mainTasks.length === 0) {
+                list.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            list.style.display = 'flex';
+            empty.style.display = 'none';
+            list.innerHTML = '';
+            mainTasks.forEach(task => {
+                const li = document.createElement('li');
+                li.className = 'task-item' + (task.completed ? ' completed' : '') + (task.id === selectedTaskId ? ' active' : '');
+                li.onclick = (e) => {
+                    if (e.target.type !== 'checkbox' && !e.target.classList.contains('task-delete')) {
+                        selectMainTask(task.id);
+                    }
+                };
+                const timeSpentStr = task.timeSpent > 0 ? `<span class="task-time">${formatTime(task.timeSpent)}</span>` : '';
+                li.innerHTML = `
+                    <input type="checkbox" class="task-checkbox" ${task.completed ? 'checked' : ''}
+                           onchange="toggleMainTask(${task.id})" onclick="event.stopPropagation()">
+                    <span class="task-text">${task.text}</span>
+                    ${timeSpentStr}
+                    <button class="task-delete" onclick="event.stopPropagation(); deleteMainTask(${task.id})">×</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function renderSubTasks() {
+            const section = document.getElementById('subtask-section');
+            const list = document.getElementById('sub-task-list');
+            const empty = document.getElementById('sub-empty');
+            if (selectedTaskId === null) {
+                section.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            const task = mainTasks.find(t => t.id === selectedTaskId);
+            if (!task) {
+                selectedTaskId = null;
+                section.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            section.style.display = 'block';
+            empty.style.display = 'none';
+            list.innerHTML = '';
+            task.subtasks.forEach(subtask => {
+                const li = document.createElement('li');
+                li.className = 'task-item' + (subtask.completed ? ' completed' : '');
+                li.innerHTML = `
+                    <input type="checkbox" class="task-checkbox" ${subtask.completed ? 'checked' : ''}
+                           onchange="toggleSubTask(${subtask.id})">
+                    <span class="task-text">${subtask.text}</span>
+                    <button class="task-delete" onclick="deleteSubTask(${subtask.id})">×</button>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // Export/Import functions
+        function exportStatisticsCSV() {
+            const pomorodoDuration = parseInt(inputPomodoro.value) || 25;
+            let csv = 'Task,Total Time (min),Sessions,Completed,Subtasks Completed,Total Subtasks\n';
+
+            mainTasks.forEach(task => {
+                const timeSpent = task.timeSpent || 0;
+                const sessions = Math.floor(timeSpent / pomorodoDuration);
+                const completedSubtasks = task.subtasks.filter(st => st.completed).length;
+                const totalSubtasks = task.subtasks.length;
+                const completed = task.completed ? 'Yes' : 'No';
+                const taskText = `"${task.text.replace(/"/g, '""')}"`;
+                csv += `${taskText},${timeSpent},${sessions},${completed},${completedSubtasks},${totalSubtasks}\n`;
+            });
+
+            const totalTime = mainTasks.reduce((sum, task) => sum + (task.timeSpent || 0), 0);
+            const totalSessions = sessionCount - 1;
+            const completedTasks = mainTasks.filter(t => t.completed).length;
+            csv += `\nSUMMARY\n`;
+            csv += `Total Time,${totalTime},${totalSessions},,${completedTasks},${mainTasks.length}\n`;
+            downloadCSV(csv, 'focus-timer-statistics.csv');
+        }
+
+        function exportTasksCSV() {
+            let csv = 'Type,ID,Text,Completed,Time Spent (min),Parent ID\n';
+            mainTasks.forEach(task => {
+                const taskText = `"${task.text.replace(/"/g, '""')}"`;
+                const completed = task.completed ? '1' : '0';
+                const timeSpent = task.timeSpent || 0;
+                csv += `Task,${task.id},${taskText},${completed},${timeSpent},\n`;
+                task.subtasks.forEach(subtask => {
+                    const subtaskText = `"${subtask.text.replace(/"/g, '""')}"`;
+                    const subtaskCompleted = subtask.completed ? '1' : '0';
+                    csv += `Subtask,${subtask.id},${subtaskText},${subtaskCompleted},0,${task.id}\n`;
+                });
+            });
+            downloadCSV(csv, 'focus-timer-tasks.csv');
+        }
+
+        function importTasksCSV(csvContent) {
+            try {
+                const lines = csvContent.split('\n');
+                const newTasks = [];
+                const taskMap = new Map();
+
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const matches = line.match(/("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*),("(?:[^"]|"")*"|[^,]*)/);
+                    if (!matches) continue;
+
+                    const type = matches[1].replace(/^"|"$/g, '');
+                    const id = parseInt(matches[2].replace(/^"|"$/g, ''));
+                    const text = matches[3].replace(/^"|"$/g, '').replace(/""/g, '"');
+                    const completed = matches[4].replace(/^"|"$/g, '') === '1';
+                    const timeSpent = parseInt(matches[5].replace(/^"|"$/g, '')) || 0;
+                    const parentId = matches[6].replace(/^"|"$/g, '');
+
+                    if (type === 'Task') {
+                        const newTask = {
+                            id: taskIdCounter++,
+                            text: text,
+                            completed: completed,
+                            subtasks: [],
+                            timeSpent: timeSpent
+                        };
+                        newTasks.push(newTask);
+                        taskMap.set(id, newTask);
+                    } else if (type === 'Subtask') {
+                        const parentOriginalId = parseInt(parentId);
+                        const parentTask = taskMap.get(parentOriginalId);
+                        if (parentTask) {
+                            parentTask.subtasks.push({
+                                id: taskIdCounter++,
+                                text: text,
+                                completed: completed
+                            });
+                        }
+                    }
+                }
+
+                if (newTasks.length > 0) {
+                    if (confirm(`Import ${newTasks.length} task(s)?\n\nOK: Add to existing tasks\nCancel: Cancel import`)) {
+                        mainTasks.push(...newTasks);
+                        renderMainTasks();
+                        renderSubTasks();
+                        saveData();
+                        alert(`✅ ${newTasks.length} task(s) imported successfully!`);
+                    }
+                } else {
+                    alert('❌ No valid tasks found in CSV file');
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                alert('❌ Error importing CSV file. Check file format.');
+            }
+        }
+
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Event listeners
+        tabPomodoro.addEventListener('click', () => switchMode('pomodoro'));
+        tabShortBreak.addEventListener('click', () => switchMode('short-break'));
+        tabLongBreak.addEventListener('click', () => switchMode('long-break'));
+
+        btnStart.addEventListener('click', () => {
+            if (isRunning) {
+                stopTimer();
+            } else {
+                startTimer();
+            }
+        });
+
+        btnReset.addEventListener('click', resetTimer);
+
+        btnSettings.addEventListener('click', () => {
+            settingsOverlay.classList.remove('hidden');
+        });
+
+        btnCloseSettings.addEventListener('click', () => {
+            settingsOverlay.classList.add('hidden');
+        });
+
+        settingsOverlay.addEventListener('click', (e) => {
+            if (e.target === settingsOverlay) {
+                settingsOverlay.classList.add('hidden');
+            }
+        });
+
+        document.getElementById('btn-decrease-pomodoro').addEventListener('click', () => {
+            const current = parseInt(inputPomodoro.value);
+            if (current > 1) {
+                inputPomodoro.value = current - 1;
+                if (currentMode === 'pomodoro') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-increase-pomodoro').addEventListener('click', () => {
+            const current = parseInt(inputPomodoro.value);
+            if (current < 90) {
+                inputPomodoro.value = current + 1;
+                if (currentMode === 'pomodoro') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-decrease-short').addEventListener('click', () => {
+            const current = parseInt(inputShortBreak.value);
+            if (current > 1) {
+                inputShortBreak.value = current - 1;
+                if (currentMode === 'short-break') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-increase-short').addEventListener('click', () => {
+            const current = parseInt(inputShortBreak.value);
+            if (current < 30) {
+                inputShortBreak.value = current + 1;
+                if (currentMode === 'short-break') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-decrease-long').addEventListener('click', () => {
+            const current = parseInt(inputLongBreak.value);
+            if (current > 1) {
+                inputLongBreak.value = current - 1;
+                if (currentMode === 'long-break') resetTimer();
+            }
+        });
+
+        document.getElementById('btn-increase-long').addEventListener('click', () => {
+            const current = parseInt(inputLongBreak.value);
+            if (current < 60) {
+                inputLongBreak.value = current + 1;
+                if (currentMode === 'long-break') resetTimer();
+            }
+        });
+
+        inputPomodoro.addEventListener('change', () => {
+            if (currentMode === 'pomodoro') resetTimer();
+        });
+
+        inputShortBreak.addEventListener('change', () => {
+            if (currentMode === 'short-break') resetTimer();
+        });
+
+        inputLongBreak.addEventListener('change', () => {
+            if (currentMode === 'long-break') resetTimer();
+        });
+
+        document.getElementById('main-task-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addMainTask();
+        });
+
+        document.getElementById('sub-task-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addSubTask();
+        });
+
+        btnExportStats.addEventListener('click', () => {
+            if (mainTasks.length === 0) {
+                alert('⚠️ No data to export. Create tasks first.');
+                return;
+            }
+            exportStatisticsCSV();
+        });
+
+        btnExportTasks.addEventListener('click', () => {
+            if (mainTasks.length === 0) {
+                alert('⚠️ No tasks to export. Create tasks first.');
+                return;
+            }
+            exportTasksCSV();
+        });
+
+        btnImportTasks.addEventListener('click', () => {
+            importTasksFile.click();
+        });
+
+        importTasksFile.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    importTasksCSV(event.target.result);
+                    importTasksFile.value = '';
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        // Initialize
+        alarmAudio.volume = alarmVolumeInput.value / 100;
+        loadData();
+        updateDisplay();
+        renderMainTasks();
+        renderSubTasks();
+    </script>
+</body>
+</html>
