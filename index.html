@@ -554,6 +554,16 @@
                 max-width: 100%;
             }
         }
+
+        /* Visit counter */
+        .visit-counter {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.4);
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -782,6 +792,9 @@
         <source src="alarm.mp3" type="audio/mpeg">
     </audio>
     <audio id="ambient-audio" loop preload="auto"></audio>
+
+    <!-- Visit Counter -->
+    <div id="visit-counter" class="visit-counter"></div>
 
     <!-- YouTube IFrame API -->
     <script src="https://www.youtube.com/iframe_api"></script>
@@ -2060,6 +2073,31 @@
 
         // Initialize alarm volume
         alarmAudio.volume = alarmVolumeInput.value / 100;
+
+        // Global visit counter using Netlify Function
+        function updateVisitCounter() {
+            const counterEl = document.getElementById('visit-counter');
+            counterEl.textContent = '👁 ...';
+
+            fetch('/api/visit-counter')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.count && data.count > 0) {
+                        counterEl.textContent = `👁 ${data.count} visite${data.count > 1 ? 's' : ''}`;
+                    } else {
+                        throw new Error('Compteur invalide');
+                    }
+                })
+                .catch(err => {
+                    console.error('Erreur compteur:', err);
+                    // Fallback sur localStorage si l'API échoue
+                    let visits = parseInt(localStorage.getItem('visitCount') || '0');
+                    visits++;
+                    localStorage.setItem('visitCount', visits.toString());
+                    counterEl.textContent = `👁 ${visits} visite${visits > 1 ? 's' : ''} (local)`;
+                });
+        }
+        updateVisitCounter();
 
         loadData();
         updateDisplay();
