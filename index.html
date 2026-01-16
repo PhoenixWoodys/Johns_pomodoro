@@ -774,6 +774,7 @@
             <button id="btn-youtube-prev" class="btn-ghost">⏮️</button>
             <button id="btn-youtube-play" class="btn-ghost">▶️</button>
             <button id="btn-youtube-next" class="btn-ghost">⏭️</button>
+            <button id="btn-youtube-reload" class="btn-ghost" title="Recharger le lecteur">🔄</button>
         </div>
     </div>
 
@@ -810,6 +811,11 @@
         let player;
         let youtubeLoaded = false;
         let youtubeMinimized = false;
+        let youtubeWatchdogInterval = null;
+        let lastPlayerState = -1;
+        let playerStuckCount = 0;
+        const WATCHDOG_INTERVAL = 5000; // Vérification toutes les 5 secondes
+        const MAX_STUCK_COUNT = 3; // Nombre de vérifications avant considérer le lecteur bloqué
 
         const timerDisplay = document.getElementById('timer-display');
         const timerStatus = document.getElementById('timer-status');
@@ -945,8 +951,9 @@
             const playerVars = {
                 autoplay: 0,
                 controls: 1,
-                modestbranding: 1,
-                rel: 0
+                rel: 0,
+                origin: window.location.origin,
+                enablejsapi: 1
             };
 
             if (playlistId) {
@@ -961,9 +968,13 @@
                 playerVars: playerVars,
                 events: {
                     'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
                 }
             });
+
+            // Démarrer le watchdog
+            startYoutubeWatchdog();
 
             youtubeLoaded = true;
             youtubeContainer.classList.remove('hidden');
@@ -977,11 +988,181 @@
         }
 
         function onPlayerStateChange(event) {
+            lastPlayerState = event.data;
+            playerStuckCount = 0; // Réinitialiser le compteur quand l'état change
+
             if (event.data == YT.PlayerState.PLAYING) {
                 btnYoutubePlay.textContent = '⏸️';
-            } else {
+                updateYoutubeStatus('Lecture en cours', 'success');
+            } else if (event.data == YT.PlayerState.PAUSED) {
                 btnYoutubePlay.textContent = '▶️';
+                updateYoutubeStatus('En pause', 'info');
+            } else if (event.data == YT.PlayerState.BUFFERING) {
+                updateYoutubeStatus('Chargement...', 'info');
+            } else if (event.data == YT.PlayerState.ENDED) {
+                btnYoutubePlay.textContent = '▶️';
+                updateYoutubeStatus('Terminé', 'info');
+            } else if (event.data == -1) {
+                // État non démarré - peut indiquer un problème
+                updateYoutubeStatus('En attente...', 'warning');
             }
+        }
+
+        function onPlayerError(event) {
+            console.error('YouTube Player Error:', event.data);
+            let errorMessage = 'Erreur inconnue';
+
+            switch(event.data) {
+                case 2:
+                    errorMessage = 'ID de vidéo invalide';
+                    break;
+                case 5:
+                    errorMessage = 'Erreur HTML5 player';
+                    break;
+                case 100:
+                    errorMessage = 'Vidéo non trouvée ou supprimée';
+                    break;
+                case 101:
+                case 150:
+                    errorMessage = 'Lecture non autorisée (restrictions)';
+                    break;
+                case 153:
+                    errorMessage = 'Erreur de configuration (Referer)';
+                    break;
+                default:
+                    errorMessage = `Erreur YouTube (code: ${event.data})`;
+            }
+
+            updateYoutubeStatus(`⚠️ ${errorMessage}`, 'error');
+
+            // Tenter de passer à la vidéo suivante en cas d'erreur sur une playlist
+            setTimeout(() => {
+                if (player && typeof player.nextVideo === 'function') {
+                    try {
+                        console.log('Tentative de passage à la vidéo suivante...');
+                        player.nextVideo();
+                    } catch (e) {
+                        console.error('Impossible de passer à la vidéo suivante:', e);
+                    }
+                }
+            }, 2000);
+        }
+
+        function updateYoutubeStatus(message, type) {
+            let statusEl = document.getElementById('youtube-status');
+            if (!statusEl) {
+                statusEl = document.createElement('div');
+                statusEl.id = 'youtube-status';
+                statusEl.style.cssText = 'font-size: 0.75rem; text-align: center; padding: 0.25rem; margin-top: 0.5rem; border-radius: 0.25rem;';
+                const controlsEl = document.querySelector('.youtube-controls');
+                if (controlsEl) {
+                    controlsEl.parentNode.insertBefore(statusEl, controlsEl);
+                }
+            }
+
+            statusEl.textContent = message;
+
+            switch(type) {
+                case 'success':
+                    statusEl.style.background = 'rgba(16, 185, 129, 0.3)';
+                    break;
+                case 'warning':
+                    statusEl.style.background = 'rgba(251, 191, 36, 0.3)';
+                    break;
+                case 'error':
+                    statusEl.style.background = 'rgba(239, 68, 68, 0.3)';
+                    break;
+                default:
+                    statusEl.style.background = 'rgba(255, 255, 255, 0.1)';
+            }
+        }
+
+        // Watchdog pour détecter les blocages du lecteur
+        function startYoutubeWatchdog() {
+            stopYoutubeWatchdog(); // Arrêter tout watchdog existant
+
+            youtubeWatchdogInterval = setInterval(() => {
+                if (!player || !youtubeLoaded) return;
+
+                try {
+                    const currentState = player.getPlayerState();
+
+                    // Si le lecteur est censé jouer mais reste bloqué en état -1 ou BUFFERING
+                    if (currentState === -1 || currentState === YT.PlayerState.BUFFERING) {
+                        playerStuckCount++;
+                        console.log(`YouTube watchdog: état bloqué détecté (${playerStuckCount}/${MAX_STUCK_COUNT})`);
+
+                        if (playerStuckCount >= MAX_STUCK_COUNT) {
+                            console.warn('YouTube watchdog: lecteur considéré comme bloqué, tentative de récupération...');
+                            updateYoutubeStatus('⚠️ Lecteur bloqué - Récupération...', 'warning');
+                            attemptPlayerRecovery();
+                        }
+                    } else {
+                        playerStuckCount = 0;
+                    }
+                } catch (e) {
+                    console.error('YouTube watchdog error:', e);
+                    playerStuckCount++;
+                    if (playerStuckCount >= MAX_STUCK_COUNT) {
+                        updateYoutubeStatus('⚠️ Lecteur non responsive', 'error');
+                    }
+                }
+            }, WATCHDOG_INTERVAL);
+        }
+
+        function stopYoutubeWatchdog() {
+            if (youtubeWatchdogInterval) {
+                clearInterval(youtubeWatchdogInterval);
+                youtubeWatchdogInterval = null;
+            }
+        }
+
+        function attemptPlayerRecovery() {
+            playerStuckCount = 0;
+
+            try {
+                // Essayer d'abord de relancer la lecture
+                if (player && typeof player.playVideo === 'function') {
+                    player.playVideo();
+                    return;
+                }
+            } catch (e) {
+                console.error('Échec de la relance:', e);
+            }
+
+            // Si ça échoue, proposer de recharger
+            updateYoutubeStatus('⚠️ Cliquez "Recharger" pour réinitialiser', 'error');
+        }
+
+        function reloadYoutubePlayer() {
+            const url = youtubeUrlInput.value.trim();
+            if (!url) {
+                alert('Aucune URL YouTube à recharger');
+                return;
+            }
+
+            stopYoutubeWatchdog();
+            playerStuckCount = 0;
+
+            // Détruire l'ancien player
+            if (player) {
+                try {
+                    player.destroy();
+                } catch (e) {
+                    console.error('Erreur lors de la destruction du player:', e);
+                }
+                player = null;
+            }
+
+            // Recréer le conteneur
+            const wrapper = document.getElementById('youtube-player-wrapper');
+            wrapper.innerHTML = '<div id="youtube-player"></div>';
+
+            // Recharger après un court délai
+            setTimeout(() => {
+                btnLoadYoutube.click();
+                updateYoutubeStatus('Lecteur rechargé', 'success');
+            }, 500);
         }
 
         btnToggleYoutube.addEventListener('click', () => {
@@ -1000,6 +1181,12 @@
 
         btnCloseYoutube.addEventListener('click', () => {
             youtubeContainer.classList.add('hidden');
+            // Mettre en pause et arrêter le watchdog quand on ferme
+            if (player && typeof player.pauseVideo === 'function') {
+                try {
+                    player.pauseVideo();
+                } catch (e) {}
+            }
         });
 
         btnYoutubePlay.addEventListener('click', () => {
@@ -1018,6 +1205,11 @@
 
         btnYoutubeNext.addEventListener('click', () => {
             if (player) player.nextVideo();
+        });
+
+        const btnYoutubeReload = document.getElementById('btn-youtube-reload');
+        btnYoutubeReload.addEventListener('click', () => {
+            reloadYoutubePlayer();
         });
 
         // Load saved data
