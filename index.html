@@ -558,11 +558,37 @@
         @media (max-width: 768px) {
             body::before {
                 opacity: 0.25;
-                filter: brightness(0.2);
+                filter: brightness(0.4);
             }
             body.custom-background::before {
                 opacity: 0.25;
-                filter: brightness(0.2);
+                filter: brightness(0.4);
+            }
+            .top-mode-switch button {
+                backdrop-filter: none;
+                background: rgba(255,255,255,0.15);
+            }
+            .top-mode-switch button.active {
+                background: rgba(255,255,255,0.9);
+            }
+            .todo-column {
+                backdrop-filter: none;
+                background: rgba(0,0,0,0.5);
+            }
+            .settings {
+                backdrop-filter: none;
+                background: rgba(0,0,0,0.5);
+            }
+            .youtube-container {
+                backdrop-filter: none;
+            }
+            .stats-content {
+                backdrop-filter: none;
+                background: rgba(30,30,50,0.98);
+            }
+            .lang-toggle {
+                backdrop-filter: none;
+                background: rgba(0,0,0,0.4);
             }
         }
 
