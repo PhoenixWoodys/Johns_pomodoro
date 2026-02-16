@@ -555,6 +555,17 @@
             }
         }
 
+        @media (max-width: 768px) {
+            body::before {
+                opacity: 0.25;
+                filter: brightness(0.6);
+            }
+            body.custom-background::before {
+                opacity: 0.25;
+                filter: brightness(0.6);
+            }
+        }
+
         /* Visit counter */
         .visit-counter {
             position: fixed;
