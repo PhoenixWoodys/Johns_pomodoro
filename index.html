@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>25:00 - Pomodoro Timer</title>
+    <title>30:00 - Pomodoro Timer</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -682,7 +682,7 @@
                             stroke-dasharray="753.98" stroke-dashoffset="0" stroke-linecap="round" 
                             style="transition: stroke-dashoffset 1s linear;"/>
                 </svg>
-                <div id="timer-display" class="timer-display">25:00</div>
+                <div id="timer-display" class="timer-display">30:00</div>
                 <div id="timer-status" class="timer-status">Prêt à se concentrer</div>
             </div>
 
@@ -702,11 +702,12 @@
                     <label id="label-pomodoro-duration">Durée Pomodoro (minutes)</label>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
                         <button id="btn-decrease-pomodoro" class="btn-ghost btn-circle">−</button>
-                        <input id="input-pomodoro-duration" type="number" value="25" min="1" max="90">
+                        <input id="input-pomodoro-duration" type="number" value="30" min="1" max="90">
                         <button id="btn-increase-pomodoro" class="btn-ghost btn-circle">+</button>
                     </div>
                     <div class="preset-buttons">
                         <button class="btn-ghost" onclick="setPomorodoDuration(25)">25m</button>
+                        <button class="btn-ghost" onclick="setPomorodoDuration(30)">30m</button>
                         <button class="btn-ghost" onclick="setPomorodoDuration(45)">45m</button>
                         <button class="btn-ghost" onclick="setPomorodoDuration(60)">60m</button>
                     </div>
@@ -1214,8 +1215,8 @@
 
         // Timer variables
         let timerInterval = null;
-        let timeRemaining = 25 * 60;
-        let totalTime = 25 * 60;
+        let timeRemaining = 30 * 60;
+        let totalTime = 30 * 60;
         let isRunning = false;
         let sessionCount = 1;
         let currentMode = 'pomodoro';
@@ -1844,7 +1845,7 @@
             } else {
                 sortedTasks.forEach(task => {
                     const timeSpent = task.timeSpent || 0;
-                    const sessions = Math.floor(timeSpent / (parseInt(inputPomorodoDuration.value) || 25));
+                    const sessions = Math.floor(timeSpent / (parseInt(inputPomorodoDuration.value) || 30));
                     const completedSubtasks = task.subtasks.filter(st => st.completed).length;
                     const totalSubtasks = task.subtasks.length;
                     
@@ -2017,7 +2018,7 @@
             stopTimer();
             let duration;
             if (currentMode === 'pomodoro') {
-                duration = parseInt(inputPomorodoDuration.value) || 25;
+                duration = parseInt(inputPomorodoDuration.value) || 30;
             } else if (currentMode === 'break') {
                 duration = parseInt(inputBreakDuration.value) || 5;
             } else {
@@ -2046,7 +2047,7 @@
                 if (selectedTaskId !== null) {
                     const task = mainTasks.find(tk => tk.id === selectedTaskId);
                     if (task) {
-                        const duration = parseInt(inputPomorodoDuration.value) || 25;
+                        const duration = parseInt(inputPomorodoDuration.value) || 30;
                         task.timeSpent = (task.timeSpent || 0) + duration;
                         renderMainTasks();
                     }
@@ -2315,7 +2316,7 @@
 
         // Export statistics to CSV
         function exportStatisticsCSV() {
-            const pomorodoDuration = parseInt(inputPomorodoDuration.value) || 25;
+            const pomorodoDuration = parseInt(inputPomorodoDuration.value) || 30;
             let csv = 'Tâche,Temps total (min),Sessions,Complétée,Sous-tâches complétées,Total sous-tâches\n';
 
             mainTasks.forEach(task => {
