@@ -564,9 +564,47 @@
             color: rgba(255, 255, 255, 0.4);
             z-index: 10;
         }
+
+        /* Language toggle */
+        .lang-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 150;
+            display: flex;
+            gap: 0;
+            border-radius: 2rem;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.3);
+            backdrop-filter: blur(10px);
+        }
+        .lang-toggle button {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border-radius: 0;
+        }
+        .lang-toggle button.active {
+            background: rgba(255,255,255,0.9);
+            color: #4a5568;
+        }
+        .lang-toggle button:hover:not(.active) {
+            background: rgba(255,255,255,0.3);
+        }
     </style>
 </head>
 <body>
+    <!-- Language toggle -->
+    <div class="lang-toggle">
+        <button id="btn-lang-fr" class="active">FR</button>
+        <button id="btn-lang-ja">JA</button>
+    </div>
+
     <!-- Boutons de sélection de mode en haut -->
     <div class="top-mode-switch">
         <button id="btn-pomodoro-top" class="active">Pomodoro</button>
@@ -577,13 +615,13 @@
     <div class="main-layout">
         <!-- To-Do List Gauche -->
         <div class="todo-column">
-            <h2>📋 Tâches principales</h2>
+            <h2 id="heading-main-tasks">📋 Tâches principales</h2>
             <div class="task-input-group">
                 <input type="text" id="main-task-input" placeholder="Nouvelle tâche...">
                 <button onclick="addMainTask()">+</button>
             </div>
             <ul id="main-task-list" class="task-list"></ul>
-            <div id="main-empty" class="empty-state">Aucune tâche pour le moment</div>
+            <div id="main-empty" class="empty-state"></div>
         </div>
 
         <!-- Timer central -->
@@ -615,7 +653,7 @@
 
             <div id="settings-panel" class="settings hidden">
                 <div class="settings-section">
-                    <label>Durée Pomodoro (minutes)</label>
+                    <label id="label-pomodoro-duration">Durée Pomodoro (minutes)</label>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
                         <button id="btn-decrease-pomodoro" class="btn-ghost btn-circle">−</button>
                         <input id="input-pomodoro-duration" type="number" value="25" min="1" max="90">
@@ -629,7 +667,7 @@
                 </div>
 
                 <div class="settings-section">
-                    <label>Durée Pause courte (minutes)</label>
+                    <label id="label-break-duration">Durée Pause courte (minutes)</label>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
                         <button id="btn-decrease-break" class="btn-ghost btn-circle">−</button>
                         <input id="input-break-duration" type="number" value="5" min="1" max="30">
@@ -642,7 +680,7 @@
                 </div>
 
                 <div class="settings-section">
-                    <label>Durée Pause longue (minutes)</label>
+                    <label id="label-long-break-duration">Durée Pause longue (minutes)</label>
                     <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
                         <button id="btn-decrease-long-break" class="btn-ghost btn-circle">−</button>
                         <input id="input-long-break-duration" type="number" value="15" min="1" max="60">
@@ -655,12 +693,12 @@
                 </div>
 
                 <div class="file-input-group">
-                    <label>Sonnerie d'alarme</label>
+                    <label id="label-alarm">Sonnerie d'alarme</label>
                     <select id="alarm-select">
-                        <option value="default">Alarme par défaut (alarm.mp3)</option>
-                        <option value="bell">🔔 Cloche</option>
-                        <option value="chime">🎵 Carillon</option>
-                        <option value="custom">Fichier personnalisé</option>
+                        <option value="default" id="opt-alarm-default">Alarme par défaut (alarm.mp3)</option>
+                        <option value="bell" id="opt-alarm-bell">🔔 Cloche</option>
+                        <option value="chime" id="opt-alarm-chime">🎵 Carillon</option>
+                        <option value="custom" id="opt-alarm-custom">Fichier personnalisé</option>
                     </select>
                     <input type="file" id="alarm-file" accept="audio/mp3,audio/mpeg,audio/*" style="display: none; margin-top: 0.5rem;">
                     <div class="volume-control">
@@ -671,7 +709,7 @@
                 </div>
 
                 <div class="file-input-group">
-                    <label>Musique d'ambiance (MP3)</label>
+                    <label id="label-ambient">Musique d'ambiance (MP3)</label>
                     <input type="file" id="ambient-file" accept="audio/mp3,audio/mpeg,audio/*">
                     <div class="volume-control">
                         <span>🔊</span>
@@ -681,48 +719,48 @@
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                         <button id="btn-toggle-ambient" class="btn-ghost" style="flex: 1; padding: 0.5rem;">⏸️ Pause musique</button>
                     </div>
-                    <div style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">La musique démarre avec le timer</div>
+                    <div id="hint-music-timer" style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">La musique démarre avec le timer</div>
                 </div>
 
                 <div class="file-input-group">
-                    <label>YouTube Playlist/Vidéo</label>
+                    <label id="label-youtube">YouTube Playlist/Vidéo</label>
                     <input type="text" id="youtube-url" placeholder="https://youtube.com/watch?v=... ou playlist">
                     <button id="btn-load-youtube" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Charger YouTube</button>
                     <button id="btn-toggle-youtube" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Afficher/Masquer YouTube</button>
                 </div>
 
                 <div class="file-input-group">
-                    <label>Image de fond personnalisée</label>
+                    <label id="label-background">Image de fond personnalisée</label>
                     <input type="file" id="background-file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
                     <button id="btn-remove-bg" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Supprimer l'image</button>
                 </div>
 
                 <div class="file-input-group">
-                    <label>Affichage des listes de tâches</label>
+                    <label id="label-task-display">Affichage des listes de tâches</label>
                     <button id="btn-toggle-main-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">Masquer tâches principales</button>
                     <button id="btn-toggle-sub-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem;">Masquer sous-tâches</button>
                 </div>
 
                 <div class="file-input-group">
-                    <label>Import / Export</label>
+                    <label id="label-import-export">Import / Export</label>
                     <button id="btn-export-stats" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">📊 Exporter statistiques (CSV)</button>
                     <button id="btn-export-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">💾 Exporter tâches (CSV)</button>
                     <input type="file" id="import-tasks-file" accept=".csv" style="display: none;">
                     <button id="btn-import-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem;">📂 Importer tâches (CSV)</button>
-                    <div style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Sauvegardez et chargez vos tâches et statistiques</div>
+                    <div id="hint-save-load" style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Sauvegardez et chargez vos tâches et statistiques</div>
                 </div>
 
                 <div class="file-input-group">
-                    <label>Réinitialisation</label>
+                    <label id="label-reset-section">Réinitialisation</label>
                     <button id="btn-reset-all" class="btn-ghost" style="width: 100%; padding: 0.75rem; background: rgba(239, 68, 68, 0.2);">🗑️ Réinitialiser tout</button>
-                    <div style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Supprime toutes les tâches et remet les compteurs à zéro</div>
+                    <div id="hint-reset" style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Supprime toutes les tâches et remet les compteurs à zéro</div>
                 </div>
             </div>
         </div>
 
         <!-- To-Do List Droite -->
         <div class="todo-column">
-            <h2>📝 Sous-tâches</h2>
+            <h2 id="heading-subtasks">📝 Sous-tâches</h2>
             <div id="subtask-section" style="display: none;">
                 <div class="task-input-group">
                     <input type="text" id="sub-task-input" placeholder="Nouvelle sous-tâche...">
@@ -730,7 +768,7 @@
                 </div>
                 <ul id="sub-task-list" class="task-list"></ul>
             </div>
-            <div id="sub-empty" class="empty-state">Sélectionnez une tâche principale pour voir ses sous-tâches</div>
+            <div id="sub-empty" class="empty-state"></div>
         </div>
     </div>
 
@@ -738,31 +776,31 @@
     <div id="stats-modal" class="stats-modal hidden">
         <div class="stats-content">
             <div class="stats-header">
-                <h2>📊 Statistiques</h2>
+                <h2 id="heading-stats">📊 Statistiques</h2>
                 <button id="btn-close-stats" class="btn-ghost">×</button>
             </div>
             
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Sessions Totales</div>
+                    <div class="stat-label" id="label-stat-sessions">Sessions Totales</div>
                     <div class="stat-value" id="stat-total-sessions">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Temps Total (Pomodoro)</div>
+                    <div class="stat-label" id="label-stat-time">Temps Total (Pomodoro)</div>
                     <div class="stat-value" id="stat-total-time">0h</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Tâches Complétées</div>
+                    <div class="stat-label" id="label-stat-completed">Tâches Complétées</div>
                     <div class="stat-value" id="stat-completed-tasks">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Tâches Actives</div>
+                    <div class="stat-label" id="label-stat-active">Tâches Actives</div>
                     <div class="stat-value" id="stat-active-tasks">0</div>
                 </div>
             </div>
 
             <div class="task-stats">
-                <h3>📋 Temps par Tâche</h3>
+                <h3 id="heading-task-stats">📋 Temps par Tâche</h3>
                 <div id="task-stats-list"></div>
             </div>
         </div>
@@ -771,7 +809,7 @@
     <!-- YouTube Player Container -->
     <div id="youtube-container" class="youtube-container hidden">
         <div class="youtube-header">
-            <h3>🎵 YouTube Player</h3>
+            <h3 id="heading-youtube">🎵 YouTube Player</h3>
             <div>
                 <button id="btn-minimize-youtube" class="btn-ghost">_</button>
                 <button id="btn-close-youtube" class="btn-ghost">×</button>
@@ -800,6 +838,334 @@
     <script src="https://www.youtube.com/iframe_api"></script>
 
     <script>
+        // ===== i18n Translation System =====
+        let currentLang = localStorage.getItem('pomodoroLang') || 'fr';
+
+        const translations = {
+            fr: {
+                // Mode buttons
+                pomodoro: 'Pomodoro',
+                shortBreak: 'Pause courte',
+                longBreak: 'Pause longue',
+                // Mode badges
+                badgePomodoro: 'POMODORO',
+                badgeShortBreak: 'PAUSE COURTE',
+                badgeLongBreak: 'PAUSE LONGUE',
+                // Timer
+                session: 'Session',
+                readyToFocus: 'Prêt à se concentrer',
+                readyForBreak: 'Prêt pour une pause',
+                readyForLongBreak: 'Prêt pour une longue pause',
+                focusTime: 'Temps de concentration',
+                shortBreakTime: 'Temps de pause courte',
+                longBreakTime: 'Temps de pause longue',
+                paused: 'En pause',
+                finished: '🔔 Terminé !',
+                start: 'Démarrer',
+                pause: 'Pause',
+                reset: 'Réinitialiser',
+                // Title
+                titlePomodoro: 'Pomodoro',
+                titleShortBreak: 'Pause courte',
+                titleLongBreak: 'Pause longue',
+                // Main tasks
+                mainTasksHeading: '📋 Tâches principales',
+                newTaskPlaceholder: 'Nouvelle tâche...',
+                noTasks: 'Aucune tâche pour le moment',
+                // Subtasks
+                subtasksHeading: '📝 Sous-tâches',
+                newSubtaskPlaceholder: 'Nouvelle sous-tâche...',
+                selectTaskForSubtasks: 'Sélectionnez une tâche principale pour voir ses sous-tâches',
+                // Settings labels
+                pomodoroDuration: 'Durée Pomodoro (minutes)',
+                shortBreakDuration: 'Durée Pause courte (minutes)',
+                longBreakDuration: 'Durée Pause longue (minutes)',
+                alarmSound: "Sonnerie d'alarme",
+                alarmDefault: 'Alarme par défaut (alarm.mp3)',
+                alarmBell: '🔔 Cloche',
+                alarmChime: '🎵 Carillon',
+                alarmCustom: 'Fichier personnalisé',
+                ambientMusic: "Musique d'ambiance (MP3)",
+                pauseMusic: '⏸️ Pause musique',
+                resumeMusic: '▶️ Reprendre musique',
+                musicStartsWithTimer: 'La musique démarre avec le timer',
+                youtubePlaylist: 'YouTube Playlist/Vidéo',
+                youtubePlaceholder: 'https://youtube.com/watch?v=... ou playlist',
+                loadYoutube: 'Charger YouTube',
+                toggleYoutube: 'Afficher/Masquer YouTube',
+                customBackground: 'Image de fond personnalisée',
+                removeImage: "Supprimer l'image",
+                taskListDisplay: 'Affichage des listes de tâches',
+                hideMainTasks: 'Masquer tâches principales',
+                showMainTasks: 'Afficher tâches principales',
+                hideSubTasks: 'Masquer sous-tâches',
+                showSubTasks: 'Afficher sous-tâches',
+                importExport: 'Import / Export',
+                exportStats: '📊 Exporter statistiques (CSV)',
+                exportTasks: '💾 Exporter tâches (CSV)',
+                importTasks: '📂 Importer tâches (CSV)',
+                saveLoadHint: 'Sauvegardez et chargez vos tâches et statistiques',
+                resetSection: 'Réinitialisation',
+                resetAll: '🗑️ Réinitialiser tout',
+                resetHint: 'Supprime toutes les tâches et remet les compteurs à zéro',
+                // Stats modal
+                statisticsHeading: '📊 Statistiques',
+                totalSessions: 'Sessions Totales',
+                totalTime: 'Temps Total (Pomodoro)',
+                completedTasks: 'Tâches Complétées',
+                activeTasks: 'Tâches Actives',
+                timePerTask: '📋 Temps par Tâche',
+                noTasksStats: 'Aucune tâche pour le moment',
+                sessions: 'sessions',
+                subtasksLabel: 'sous-tâches',
+                // YouTube
+                youtubePlayer: '🎵 YouTube Player',
+                ytPlaying: 'Lecture en cours',
+                ytPaused: 'En pause',
+                ytLoading: 'Chargement...',
+                ytEnded: 'Terminé',
+                ytWaiting: 'En attente...',
+                ytStuck: '⚠️ Lecteur bloqué - Récupération...',
+                ytNotResponsive: '⚠️ Lecteur non responsive',
+                ytReloadHint: '⚠️ Cliquez "Recharger" pour réinitialiser',
+                ytReloaded: 'Lecteur rechargé',
+                // Alerts
+                alertEnterYoutubeUrl: 'Veuillez entrer une URL YouTube',
+                alertInvalidYoutubeUrl: 'URL YouTube invalide',
+                alertLoadYoutubeFirst: "Veuillez d'abord charger une vidéo/playlist YouTube",
+                alertSelectMp3First: "Veuillez d'abord sélectionner un fichier MP3 dans les paramètres",
+                alertNoYoutubeUrl: 'Aucune URL YouTube à recharger',
+                alertNoDataExport: '⚠️ Aucune donnée à exporter. Créez d\'abord des tâches.',
+                alertNoTasksExport: '⚠️ Aucune tâche à exporter. Créez d\'abord des tâches.',
+                alertResetConfirm: '⚠️ Êtes-vous sûr de vouloir tout réinitialiser ?\n\nCela supprimera :\n• Toutes les tâches et sous-tâches\n• Tous les temps enregistrés\n• Le compteur de sessions\n• L\'URL YouTube sauvegardée\n\nCette action est irréversible.',
+                alertResetDone: '✅ Toutes les données ont été réinitialisées avec succès !',
+                alertImportConfirm: 'Voulez-vous importer {count} tâche(s) ?\n\nOptions :\n• OK : Ajouter aux tâches existantes\n• Annuler : Annuler l\'import',
+                alertImportDone: '✅ {count} tâche(s) importée(s) avec succès !',
+                alertImportNoTasks: '❌ Aucune tâche valide trouvée dans le fichier CSV',
+                alertImportError: '❌ Erreur lors de l\'import du fichier CSV. Vérifiez le format du fichier.',
+                // YouTube errors
+                ytErrUnknown: 'Erreur inconnue',
+                ytErrInvalidId: 'ID de vidéo invalide',
+                ytErrHtml5: 'Erreur HTML5 player',
+                ytErrNotFound: 'Vidéo non trouvée ou supprimée',
+                ytErrRestricted: 'Lecture non autorisée (restrictions)',
+                ytErrReferer: 'Erreur de configuration (Referer)',
+                ytErrCode: 'Erreur YouTube (code: {code})',
+                // Visit counter
+                visits: 'visite',
+                visitsPlural: 'visites',
+                local: '(local)',
+                // CSV headers
+                csvTask: 'Tâche',
+                csvSubtask: 'Sous-tâche',
+                csvYes: 'Oui',
+                csvNo: 'Non',
+                csvSummary: 'RÉSUMÉ',
+                csvTotalTime: 'Temps total',
+            },
+            ja: {
+                pomodoro: 'ポモドーロ',
+                shortBreak: '短い休憩',
+                longBreak: '長い休憩',
+                badgePomodoro: 'ポモドーロ',
+                badgeShortBreak: '短い休憩',
+                badgeLongBreak: '長い休憩',
+                session: 'セッション',
+                readyToFocus: '集中する準備ができました',
+                readyForBreak: '休憩の準備ができました',
+                readyForLongBreak: '長い休憩の準備ができました',
+                focusTime: '集中タイム',
+                shortBreakTime: '短い休憩タイム',
+                longBreakTime: '長い休憩タイム',
+                paused: '一時停止中',
+                finished: '🔔 完了！',
+                start: 'スタート',
+                pause: '一時停止',
+                reset: 'リセット',
+                titlePomodoro: 'ポモドーロ',
+                titleShortBreak: '短い休憩',
+                titleLongBreak: '長い休憩',
+                mainTasksHeading: '📋 メインタスク',
+                newTaskPlaceholder: '新しいタスク...',
+                noTasks: 'タスクはまだありません',
+                subtasksHeading: '📝 サブタスク',
+                newSubtaskPlaceholder: '新しいサブタスク...',
+                selectTaskForSubtasks: 'メインタスクを選択してサブタスクを表示',
+                pomodoroDuration: 'ポモドーロの時間（分）',
+                shortBreakDuration: '短い休憩の時間（分）',
+                longBreakDuration: '長い休憩の時間（分）',
+                alarmSound: 'アラーム音',
+                alarmDefault: 'デフォルトアラーム (alarm.mp3)',
+                alarmBell: '🔔 ベル',
+                alarmChime: '🎵 チャイム',
+                alarmCustom: 'カスタムファイル',
+                ambientMusic: 'BGM（MP3）',
+                pauseMusic: '⏸️ 音楽を一時停止',
+                resumeMusic: '▶️ 音楽を再開',
+                musicStartsWithTimer: 'タイマーと一緒に音楽が始まります',
+                youtubePlaylist: 'YouTube プレイリスト/動画',
+                youtubePlaceholder: 'https://youtube.com/watch?v=... またはプレイリスト',
+                loadYoutube: 'YouTubeを読み込む',
+                toggleYoutube: 'YouTube 表示/非表示',
+                customBackground: 'カスタム背景画像',
+                removeImage: '画像を削除',
+                taskListDisplay: 'タスクリストの表示',
+                hideMainTasks: 'メインタスクを非表示',
+                showMainTasks: 'メインタスクを表示',
+                hideSubTasks: 'サブタスクを非表示',
+                showSubTasks: 'サブタスクを表示',
+                importExport: 'インポート / エクスポート',
+                exportStats: '📊 統計をエクスポート (CSV)',
+                exportTasks: '💾 タスクをエクスポート (CSV)',
+                importTasks: '📂 タスクをインポート (CSV)',
+                saveLoadHint: 'タスクと統計を保存・読み込み',
+                resetSection: 'リセット',
+                resetAll: '🗑️ すべてリセット',
+                resetHint: 'すべてのタスクを削除し、カウンターをゼロにリセットします',
+                statisticsHeading: '📊 統計',
+                totalSessions: '合計セッション',
+                totalTime: '合計時間（ポモドーロ）',
+                completedTasks: '完了タスク',
+                activeTasks: 'アクティブタスク',
+                timePerTask: '📋 タスク別時間',
+                noTasksStats: 'タスクはまだありません',
+                sessions: 'セッション',
+                subtasksLabel: 'サブタスク',
+                youtubePlayer: '🎵 YouTube プレイヤー',
+                ytPlaying: '再生中',
+                ytPaused: '一時停止中',
+                ytLoading: '読み込み中...',
+                ytEnded: '終了',
+                ytWaiting: '待機中...',
+                ytStuck: '⚠️ プレイヤーがフリーズ - 復旧中...',
+                ytNotResponsive: '⚠️ プレイヤーが応答しません',
+                ytReloadHint: '⚠️「リロード」をクリックしてリセット',
+                ytReloaded: 'プレイヤーをリロードしました',
+                alertEnterYoutubeUrl: 'YouTube URLを入力してください',
+                alertInvalidYoutubeUrl: '無効なYouTube URL',
+                alertLoadYoutubeFirst: '先にYouTube動画/プレイリストを読み込んでください',
+                alertSelectMp3First: '先に設定でMP3ファイルを選択してください',
+                alertNoYoutubeUrl: 'リロードするYouTube URLがありません',
+                alertNoDataExport: '⚠️ エクスポートするデータがありません。先にタスクを作成してください。',
+                alertNoTasksExport: '⚠️ エクスポートするタスクがありません。先にタスクを作成してください。',
+                alertResetConfirm: '⚠️ すべてリセットしてよろしいですか？\n\n以下が削除されます：\n• すべてのタスクとサブタスク\n• すべての記録時間\n• セッションカウンター\n• 保存されたYouTube URL\n\nこの操作は元に戻せません。',
+                alertResetDone: '✅ すべてのデータが正常にリセットされました！',
+                alertImportConfirm: '{count}件のタスクをインポートしますか？\n\nオプション：\n• OK：既存のタスクに追加\n• キャンセル：インポートを中止',
+                alertImportDone: '✅ {count}件のタスクが正常にインポートされました！',
+                alertImportNoTasks: '❌ CSVファイルに有効なタスクが見つかりませんでした',
+                alertImportError: '❌ CSVファイルのインポート中にエラーが発生しました。ファイルの形式を確認してください。',
+                ytErrUnknown: '不明なエラー',
+                ytErrInvalidId: '無効な動画ID',
+                ytErrHtml5: 'HTML5プレイヤーエラー',
+                ytErrNotFound: '動画が見つからないか削除されています',
+                ytErrRestricted: '再生が許可されていません（制限）',
+                ytErrReferer: '設定エラー（Referer）',
+                ytErrCode: 'YouTubeエラー（コード: {code}）',
+                visits: '回の訪問',
+                visitsPlural: '回の訪問',
+                local: '（ローカル）',
+                csvTask: 'タスク',
+                csvSubtask: 'サブタスク',
+                csvYes: 'はい',
+                csvNo: 'いいえ',
+                csvSummary: 'サマリー',
+                csvTotalTime: '合計時間',
+            }
+        };
+
+        function t(key) {
+            return (translations[currentLang] && translations[currentLang][key]) || translations.fr[key] || key;
+        }
+
+        function applyTranslations() {
+            document.documentElement.lang = currentLang === 'ja' ? 'ja' : 'fr';
+            // Mode buttons
+            document.getElementById('btn-pomodoro-top').textContent = t('pomodoro');
+            document.getElementById('btn-break-top').textContent = t('shortBreak');
+            document.getElementById('btn-long-break-top').textContent = t('longBreak');
+            // Language buttons
+            document.getElementById('btn-lang-fr').classList.toggle('active', currentLang === 'fr');
+            document.getElementById('btn-lang-ja').classList.toggle('active', currentLang === 'ja');
+            // Tasks headings
+            document.getElementById('heading-main-tasks').textContent = t('mainTasksHeading');
+            document.getElementById('main-task-input').placeholder = t('newTaskPlaceholder');
+            document.getElementById('main-empty').textContent = t('noTasks');
+            document.getElementById('heading-subtasks').textContent = t('subtasksHeading');
+            document.getElementById('sub-task-input').placeholder = t('newSubtaskPlaceholder');
+            document.getElementById('sub-empty').textContent = t('selectTaskForSubtasks');
+            // Timer
+            if (!isRunning) {
+                document.getElementById('btn-start').textContent = t('start');
+            } else {
+                document.getElementById('btn-start').textContent = t('pause');
+            }
+            document.getElementById('btn-reset').textContent = t('reset');
+            // Update mode badge and status based on current mode
+            if (currentMode === 'pomodoro') {
+                modeBadge.textContent = t('badgePomodoro');
+                if (!isRunning && timeRemaining === totalTime) timerStatus.textContent = t('readyToFocus');
+                else if (isRunning) timerStatus.textContent = t('focusTime');
+            } else if (currentMode === 'break') {
+                modeBadge.textContent = t('badgeShortBreak');
+                if (!isRunning && timeRemaining === totalTime) timerStatus.textContent = t('readyForBreak');
+                else if (isRunning) timerStatus.textContent = t('shortBreakTime');
+            } else {
+                modeBadge.textContent = t('badgeLongBreak');
+                if (!isRunning && timeRemaining === totalTime) timerStatus.textContent = t('readyForLongBreak');
+                else if (isRunning) timerStatus.textContent = t('longBreakTime');
+            }
+            if (!isRunning && timeRemaining < totalTime && timeRemaining > 0) {
+                timerStatus.textContent = t('paused');
+            }
+            sessionCountEl.textContent = `${t('session')} #${sessionCount}`;
+            // Settings labels
+            document.getElementById('label-pomodoro-duration').textContent = t('pomodoroDuration');
+            document.getElementById('label-break-duration').textContent = t('shortBreakDuration');
+            document.getElementById('label-long-break-duration').textContent = t('longBreakDuration');
+            document.getElementById('label-alarm').textContent = t('alarmSound');
+            document.getElementById('opt-alarm-default').textContent = t('alarmDefault');
+            document.getElementById('opt-alarm-bell').textContent = t('alarmBell');
+            document.getElementById('opt-alarm-chime').textContent = t('alarmChime');
+            document.getElementById('opt-alarm-custom').textContent = t('alarmCustom');
+            document.getElementById('label-ambient').textContent = t('ambientMusic');
+            document.getElementById('btn-toggle-ambient').textContent = ambientPlaying ? t('pauseMusic') : t('resumeMusic');
+            document.getElementById('hint-music-timer').textContent = t('musicStartsWithTimer');
+            document.getElementById('label-youtube').textContent = t('youtubePlaylist');
+            document.getElementById('youtube-url').placeholder = t('youtubePlaceholder');
+            document.getElementById('btn-load-youtube').textContent = t('loadYoutube');
+            document.getElementById('btn-toggle-youtube').textContent = t('toggleYoutube');
+            document.getElementById('label-background').textContent = t('customBackground');
+            document.getElementById('btn-remove-bg').textContent = t('removeImage');
+            document.getElementById('label-task-display').textContent = t('taskListDisplay');
+            document.getElementById('btn-toggle-main-tasks').textContent = mainTasksVisible ? t('hideMainTasks') : t('showMainTasks');
+            document.getElementById('btn-toggle-sub-tasks').textContent = subTasksVisible ? t('hideSubTasks') : t('showSubTasks');
+            document.getElementById('label-import-export').textContent = t('importExport');
+            document.getElementById('btn-export-stats').textContent = t('exportStats');
+            document.getElementById('btn-export-tasks').textContent = t('exportTasks');
+            document.getElementById('btn-import-tasks').textContent = t('importTasks');
+            document.getElementById('hint-save-load').textContent = t('saveLoadHint');
+            document.getElementById('label-reset-section').textContent = t('resetSection');
+            document.getElementById('btn-reset-all').textContent = t('resetAll');
+            document.getElementById('hint-reset').textContent = t('resetHint');
+            // Stats modal
+            document.getElementById('heading-stats').textContent = t('statisticsHeading');
+            document.getElementById('label-stat-sessions').textContent = t('totalSessions');
+            document.getElementById('label-stat-time').textContent = t('totalTime');
+            document.getElementById('label-stat-completed').textContent = t('completedTasks');
+            document.getElementById('label-stat-active').textContent = t('activeTasks');
+            document.getElementById('heading-task-stats').textContent = t('timePerTask');
+            // YouTube
+            document.getElementById('heading-youtube').textContent = t('youtubePlayer');
+            // Update page title
+            updateTitle();
+        }
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('pomodoroLang', lang);
+            applyTranslations();
+        }
+
         // Timer variables
         let timerInterval = null;
         let timeRemaining = 25 * 60;
@@ -945,7 +1311,7 @@
         btnLoadYoutube.addEventListener('click', () => {
             const url = youtubeUrlInput.value.trim();
             if (!url) {
-                alert('Veuillez entrer une URL YouTube');
+                alert(t('alertEnterYoutubeUrl'));
                 return;
             }
 
@@ -953,7 +1319,7 @@
             const playlistId = extractPlaylistId(url);
 
             if (!videoId && !playlistId) {
-                alert('URL YouTube invalide');
+                alert(t('alertInvalidYoutubeUrl'));
                 return;
             }
 
@@ -1006,44 +1372,43 @@
 
             if (event.data == YT.PlayerState.PLAYING) {
                 btnYoutubePlay.textContent = '⏸️';
-                updateYoutubeStatus('Lecture en cours', 'success');
+                updateYoutubeStatus(t('ytPlaying'), 'success');
             } else if (event.data == YT.PlayerState.PAUSED) {
                 btnYoutubePlay.textContent = '▶️';
-                updateYoutubeStatus('En pause', 'info');
+                updateYoutubeStatus(t('ytPaused'), 'info');
             } else if (event.data == YT.PlayerState.BUFFERING) {
-                updateYoutubeStatus('Chargement...', 'info');
+                updateYoutubeStatus(t('ytLoading'), 'info');
             } else if (event.data == YT.PlayerState.ENDED) {
                 btnYoutubePlay.textContent = '▶️';
-                updateYoutubeStatus('Terminé', 'info');
+                updateYoutubeStatus(t('ytEnded'), 'info');
             } else if (event.data == -1) {
-                // État non démarré - peut indiquer un problème
-                updateYoutubeStatus('En attente...', 'warning');
+                updateYoutubeStatus(t('ytWaiting'), 'warning');
             }
         }
 
         function onPlayerError(event) {
             console.error('YouTube Player Error:', event.data);
-            let errorMessage = 'Erreur inconnue';
+            let errorMessage = t('ytErrUnknown');
 
             switch(event.data) {
                 case 2:
-                    errorMessage = 'ID de vidéo invalide';
+                    errorMessage = t('ytErrInvalidId');
                     break;
                 case 5:
-                    errorMessage = 'Erreur HTML5 player';
+                    errorMessage = t('ytErrHtml5');
                     break;
                 case 100:
-                    errorMessage = 'Vidéo non trouvée ou supprimée';
+                    errorMessage = t('ytErrNotFound');
                     break;
                 case 101:
                 case 150:
-                    errorMessage = 'Lecture non autorisée (restrictions)';
+                    errorMessage = t('ytErrRestricted');
                     break;
                 case 153:
-                    errorMessage = 'Erreur de configuration (Referer)';
+                    errorMessage = t('ytErrReferer');
                     break;
                 default:
-                    errorMessage = `Erreur YouTube (code: ${event.data})`;
+                    errorMessage = t('ytErrCode').replace('{code}', event.data);
             }
 
             updateYoutubeStatus(`⚠️ ${errorMessage}`, 'error');
@@ -1107,7 +1472,7 @@
 
                         if (playerStuckCount >= MAX_STUCK_COUNT) {
                             console.warn('YouTube watchdog: lecteur considéré comme bloqué, tentative de récupération...');
-                            updateYoutubeStatus('⚠️ Lecteur bloqué - Récupération...', 'warning');
+                            updateYoutubeStatus(t('ytStuck'), 'warning');
                             attemptPlayerRecovery();
                         }
                     } else {
@@ -1117,7 +1482,7 @@
                     console.error('YouTube watchdog error:', e);
                     playerStuckCount++;
                     if (playerStuckCount >= MAX_STUCK_COUNT) {
-                        updateYoutubeStatus('⚠️ Lecteur non responsive', 'error');
+                        updateYoutubeStatus(t('ytNotResponsive'), 'error');
                     }
                 }
             }, WATCHDOG_INTERVAL);
@@ -1144,13 +1509,13 @@
             }
 
             // Si ça échoue, proposer de recharger
-            updateYoutubeStatus('⚠️ Cliquez "Recharger" pour réinitialiser', 'error');
+            updateYoutubeStatus(t('ytReloadHint'), 'error');
         }
 
         function reloadYoutubePlayer() {
             const url = youtubeUrlInput.value.trim();
             if (!url) {
-                alert('Aucune URL YouTube à recharger');
+                alert(t('alertNoYoutubeUrl'));
                 return;
             }
 
@@ -1174,13 +1539,13 @@
             // Recharger après un court délai
             setTimeout(() => {
                 btnLoadYoutube.click();
-                updateYoutubeStatus('Lecteur rechargé', 'success');
+                updateYoutubeStatus(t('ytReloaded'), 'success');
             }, 500);
         }
 
         btnToggleYoutube.addEventListener('click', () => {
             if (!youtubeLoaded) {
-                alert('Veuillez d\'abord charger une vidéo/playlist YouTube');
+                alert(t('alertLoadYoutubeFirst'));
                 return;
             }
             youtubeContainer.classList.toggle('hidden');
@@ -1234,7 +1599,7 @@
                     mainTasks = data.tasks || [];
                     taskIdCounter = data.taskIdCounter || 0;
                     sessionCount = data.sessionCount || 1;
-                    sessionCountEl.textContent = `Session #${sessionCount}`;
+                    sessionCountEl.textContent = `${t('session')} #${sessionCount}`;
                     renderMainTasks();
                 } catch (e) {
                     console.error('Erreur de chargement des données:', e);
@@ -1294,9 +1659,9 @@
             const minutes = Math.floor(timeRemaining / 60);
             const seconds = timeRemaining % 60;
             const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-            let modeStr = 'Pomodoro';
-            if (currentMode === 'break') modeStr = 'Pause courte';
-            else if (currentMode === 'long-break') modeStr = 'Pause longue';
+            let modeStr = t('titlePomodoro');
+            if (currentMode === 'break') modeStr = t('titleShortBreak');
+            else if (currentMode === 'long-break') modeStr = t('titleLongBreak');
             document.title = `${timeStr} - ${modeStr}`;
         }
 
@@ -1323,7 +1688,7 @@
                 ambientAudio.src = url;
                 ambientAudio.volume = ambientVolumeInput.value / 100;
                 ambientMusicLoaded = true;
-                btnToggleAmbient.textContent = '⏸️ Pause musique';
+                btnToggleAmbient.textContent = t('pauseMusic');
                 btnToggleAmbientMain.style.display = 'block';
                 btnToggleAmbientMain.textContent = '🎵';
             }
@@ -1338,20 +1703,20 @@
 
         function toggleAmbientMusic() {
             if (!ambientMusicLoaded) {
-                alert('Veuillez d\'abord sélectionner un fichier MP3 dans les paramètres');
+                alert(t('alertSelectMp3First'));
                 return;
             }
 
             if (ambientPlaying) {
                 ambientAudio.pause();
-                btnToggleAmbient.textContent = '▶️ Reprendre musique';
+                btnToggleAmbient.textContent = t('resumeMusic');
                 btnToggleAmbientMain.textContent = '🔇';
                 ambientPlaying = false;
             } else {
                 ambientAudio.play().catch(err => {
                     console.error('Impossible de jouer la musique:', err);
                 });
-                btnToggleAmbient.textContent = '⏸️ Pause musique';
+                btnToggleAmbient.textContent = t('pauseMusic');
                 btnToggleAmbientMain.textContent = '🎵';
                 ambientPlaying = true;
             }
@@ -1396,7 +1761,7 @@
             } else {
                 mainColumn.classList.add('hidden');
             }
-            btnToggleMainTasks.textContent = mainTasksVisible ? 'Masquer tâches principales' : 'Afficher tâches principales';
+            btnToggleMainTasks.textContent = mainTasksVisible ? t('hideMainTasks') : t('showMainTasks');
         });
 
         btnToggleSubTasks.addEventListener('click', () => {
@@ -1407,14 +1772,14 @@
             } else {
                 subColumn.classList.add('hidden');
             }
-            btnToggleSubTasks.textContent = subTasksVisible ? 'Masquer sous-tâches' : 'Afficher sous-tâches';
+            btnToggleSubTasks.textContent = subTasksVisible ? t('hideSubTasks') : t('showSubTasks');
         });
 
         // Stats functionality
         function updateStats() {
             const totalSessions = sessionCount - 1;
-            const completedTasks = mainTasks.filter(t => t.completed).length;
-            const activeTasks = mainTasks.filter(t => !t.completed).length;
+            const completedTasks = mainTasks.filter(tk => tk.completed).length;
+            const activeTasks = mainTasks.filter(tk => !tk.completed).length;
             const totalTime = mainTasks.reduce((sum, task) => sum + (task.timeSpent || 0), 0);
             
             document.getElementById('stat-total-sessions').textContent = totalSessions;
@@ -1429,7 +1794,7 @@
             const sortedTasks = [...mainTasks].sort((a, b) => (b.timeSpent || 0) - (a.timeSpent || 0));
             
             if (sortedTasks.length === 0) {
-                taskStatsList.innerHTML = '<div style="text-align: center; opacity: 0.5; padding: 2rem;">Aucune tâche pour le moment</div>';
+                taskStatsList.innerHTML = `<div style="text-align: center; opacity: 0.5; padding: 2rem;">${t('noTasksStats')}</div>`;
             } else {
                 sortedTasks.forEach(task => {
                     const timeSpent = task.timeSpent || 0;
@@ -1443,8 +1808,8 @@
                         <div class="task-name">${task.completed ? '✓ ' : ''}${task.text}</div>
                         <div class="task-metrics">
                             <span>⏱️ ${formatTime(timeSpent)}</span>
-                            <span>🍅 ${sessions} sessions</span>
-                            ${totalSubtasks > 0 ? `<span>✓ ${completedSubtasks}/${totalSubtasks} sous-tâches</span>` : ''}
+                            <span>🍅 ${sessions} ${t('sessions')}</span>
+                            ${totalSubtasks > 0 ? `<span>✓ ${completedSubtasks}/${totalSubtasks} ${t('subtasksLabel')}</span>` : ''}
                         </div>
                     `;
                     taskStatsList.appendChild(item);
@@ -1468,19 +1833,19 @@
         });
 
         btnResetAll.addEventListener('click', () => {
-            if (confirm('⚠️ Êtes-vous sûr de vouloir tout réinitialiser ?\n\nCela supprimera :\n• Toutes les tâches et sous-tâches\n• Tous les temps enregistrés\n• Le compteur de sessions\n• L\'URL YouTube sauvegardée\n\nCette action est irréversible.')) {
+            if (confirm(t('alertResetConfirm'))) {
                 if (isRunning) stopTimer();
                 mainTasks = [];
                 selectedTaskId = null;
                 taskIdCounter = 0;
                 sessionCount = 1;
-                sessionCountEl.textContent = 'Session #1';
+                sessionCountEl.textContent = `${t('session')} #1`;
                 youtubeUrlInput.value = '';
                 localStorage.removeItem('youtubeUrl');
                 renderMainTasks();
                 renderSubTasks();
                 saveData();
-                alert('✅ Toutes les données ont été réinitialisées avec succès !');
+                alert(t('alertResetDone'));
             }
         });
 
@@ -1492,22 +1857,22 @@
             btnLongBreakTop.classList.remove('active');
             
             if (mode === 'pomodoro') {
-                modeBadge.textContent = 'POMODORO';
+                modeBadge.textContent = t('badgePomodoro');
                 modeBadge.classList.remove('break-mode', 'long-break-mode');
                 btnPomodoroTop.classList.add('active');
-                timerStatus.textContent = 'Prêt à se concentrer';
+                timerStatus.textContent = t('readyToFocus');
             } else if (mode === 'break') {
-                modeBadge.textContent = 'PAUSE COURTE';
+                modeBadge.textContent = t('badgeShortBreak');
                 modeBadge.classList.remove('long-break-mode');
                 modeBadge.classList.add('break-mode');
                 btnBreakTop.classList.add('active');
-                timerStatus.textContent = 'Prêt pour une pause';
+                timerStatus.textContent = t('readyForBreak');
             } else if (mode === 'long-break') {
-                modeBadge.textContent = 'PAUSE LONGUE';
+                modeBadge.textContent = t('badgeLongBreak');
                 modeBadge.classList.remove('break-mode');
                 modeBadge.classList.add('long-break-mode');
                 btnLongBreakTop.classList.add('active');
-                timerStatus.textContent = 'Prêt pour une longue pause';
+                timerStatus.textContent = t('readyForLongBreak');
             }
             resetTimer();
         }
@@ -1550,15 +1915,15 @@
         function startTimer() {
             if (isRunning) return;
             isRunning = true;
-            btnStart.textContent = 'Pause';
+            btnStart.textContent = t('pause');
             btnStart.className = 'btn-warning';
-            
+
             if (currentMode === 'pomodoro') {
-                timerStatus.textContent = 'Temps de concentration';
+                timerStatus.textContent = t('focusTime');
             } else if (currentMode === 'break') {
-                timerStatus.textContent = 'Temps de pause courte';
+                timerStatus.textContent = t('shortBreakTime');
             } else {
-                timerStatus.textContent = 'Temps de pause longue';
+                timerStatus.textContent = t('longBreakTime');
             }
             
             if (ambientMusicLoaded && !ambientPlaying) {
@@ -1566,7 +1931,7 @@
                     console.error('Impossible de jouer la musique:', err);
                 });
                 ambientPlaying = true;
-                btnToggleAmbient.textContent = '⏸️ Pause musique';
+                btnToggleAmbient.textContent = t('pauseMusic');
                 btnToggleAmbientMain.textContent = '🎵';
             }
             
@@ -1591,13 +1956,13 @@
         function stopTimer() {
             isRunning = false;
             clearInterval(timerInterval);
-            btnStart.textContent = 'Démarrer';
+            btnStart.textContent = t('start');
             btnStart.className = currentMode === 'pomodoro' ? 'btn-primary' : 'btn-success';
-            timerStatus.textContent = 'En pause';
+            timerStatus.textContent = t('paused');
             if (ambientPlaying) {
                 ambientAudio.pause();
                 ambientPlaying = false;
-                btnToggleAmbient.textContent = '▶️ Reprendre musique';
+                btnToggleAmbient.textContent = t('resumeMusic');
                 btnToggleAmbientMain.textContent = '🔇';
             }
         }
@@ -1617,23 +1982,23 @@
             updateDisplay();
             timerDisplay.classList.remove('complete');
             if (currentMode === 'pomodoro') {
-                timerStatus.textContent = 'Prêt à se concentrer';
+                timerStatus.textContent = t('readyToFocus');
             } else if (currentMode === 'break') {
-                timerStatus.textContent = 'Prêt pour une pause';
+                timerStatus.textContent = t('readyForBreak');
             } else {
-                timerStatus.textContent = 'Prêt pour une longue pause';
+                timerStatus.textContent = t('readyForLongBreak');
             }
         }
 
         function completeTimer() {
             timerDisplay.classList.add('complete');
-            timerStatus.textContent = '🔔 Terminé !';
+            timerStatus.textContent = t('finished');
             playAlarm();
             if (currentMode === 'pomodoro') {
                 sessionCount++;
-                sessionCountEl.textContent = `Session #${sessionCount}`;
+                sessionCountEl.textContent = `${t('session')} #${sessionCount}`;
                 if (selectedTaskId !== null) {
-                    const task = mainTasks.find(t => t.id === selectedTaskId);
+                    const task = mainTasks.find(tk => tk.id === selectedTaskId);
                     if (task) {
                         const duration = parseInt(inputPomorodoDuration.value) || 25;
                         task.timeSpent = (task.timeSpent || 0) + duration;
@@ -1696,7 +2061,7 @@
             const input = document.getElementById('sub-task-input');
             const text = input.value.trim();
             if (text === '') return;
-            const task = mainTasks.find(t => t.id === selectedTaskId);
+            const task = mainTasks.find(tk => tk.id === selectedTaskId);
             if (!task) return;
             const subtask = {
                 id: taskIdCounter++,
@@ -1710,7 +2075,7 @@
         }
 
         function toggleMainTask(id) {
-            const task = mainTasks.find(t => t.id === id);
+            const task = mainTasks.find(tk => tk.id === id);
             if (task) {
                 task.completed = !task.completed;
                 renderMainTasks();
@@ -1720,7 +2085,7 @@
 
         function toggleSubTask(id) {
             if (selectedTaskId === null) return;
-            const task = mainTasks.find(t => t.id === selectedTaskId);
+            const task = mainTasks.find(tk => tk.id === selectedTaskId);
             if (!task) return;
             const subtask = task.subtasks.find(st => st.id === id);
             if (subtask) {
@@ -1731,7 +2096,7 @@
         }
 
         function deleteMainTask(id) {
-            mainTasks = mainTasks.filter(t => t.id !== id);
+            mainTasks = mainTasks.filter(tk => tk.id !== id);
             if (selectedTaskId === id) {
                 selectedTaskId = null;
                 renderSubTasks();
@@ -1742,7 +2107,7 @@
 
         function deleteSubTask(id) {
             if (selectedTaskId === null) return;
-            const task = mainTasks.find(t => t.id === selectedTaskId);
+            const task = mainTasks.find(tk => tk.id === selectedTaskId);
             if (!task) return;
             task.subtasks = task.subtasks.filter(st => st.id !== id);
             renderSubTasks();
@@ -1794,7 +2159,7 @@
                 empty.style.display = 'block';
                 return;
             }
-            const task = mainTasks.find(t => t.id === selectedTaskId);
+            const task = mainTasks.find(tk => tk.id === selectedTaskId);
             if (!task) {
                 selectedTaskId = null;
                 section.style.display = 'none';
@@ -1912,7 +2277,7 @@
                 const sessions = Math.floor(timeSpent / pomorodoDuration);
                 const completedSubtasks = task.subtasks.filter(st => st.completed).length;
                 const totalSubtasks = task.subtasks.length;
-                const completed = task.completed ? 'Oui' : 'Non';
+                const completed = task.completed ? t('csvYes') : t('csvNo');
 
                 // Escape commas and quotes in task text
                 const taskText = `"${task.text.replace(/"/g, '""')}"`;
@@ -1923,10 +2288,10 @@
             // Add summary row
             const totalTime = mainTasks.reduce((sum, task) => sum + (task.timeSpent || 0), 0);
             const totalSessions = sessionCount - 1;
-            const completedTasks = mainTasks.filter(t => t.completed).length;
+            const completedTasks = mainTasks.filter(tk => tk.completed).length;
 
-            csv += `\nRÉSUMÉ\n`;
-            csv += `Temps total,${totalTime},${totalSessions},,${completedTasks},${mainTasks.length}\n`;
+            csv += `\n${t('csvSummary')}\n`;
+            csv += `${t('csvTotalTime')},${totalTime},${totalSessions},,${completedTasks},${mainTasks.length}\n`;
 
             downloadCSV(csv, 'pomodoro-statistiques.csv');
         }
@@ -1940,14 +2305,14 @@
                 const completed = task.completed ? '1' : '0';
                 const timeSpent = task.timeSpent || 0;
 
-                csv += `Tâche,${task.id},${taskText},${completed},${timeSpent},\n`;
+                csv += `${t('csvTask')},${task.id},${taskText},${completed},${timeSpent},\n`;
 
                 // Add subtasks
                 task.subtasks.forEach(subtask => {
                     const subtaskText = `"${subtask.text.replace(/"/g, '""')}"`;
                     const subtaskCompleted = subtask.completed ? '1' : '0';
 
-                    csv += `Sous-tâche,${subtask.id},${subtaskText},${subtaskCompleted},0,${task.id}\n`;
+                    csv += `${t('csvSubtask')},${subtask.id},${subtaskText},${subtaskCompleted},0,${task.id}\n`;
                 });
             });
 
@@ -1977,7 +2342,7 @@
                     const timeSpent = parseInt(matches[5].replace(/^"|"$/g, '')) || 0;
                     const parentId = matches[6].replace(/^"|"$/g, '');
 
-                    if (type === 'Tâche') {
+                    if (type === 'Tâche' || type === 'タスク') {
                         const newTask = {
                             id: taskIdCounter++,
                             text: text,
@@ -1987,7 +2352,7 @@
                         };
                         newTasks.push(newTask);
                         taskMap.set(id, newTask);
-                    } else if (type === 'Sous-tâche') {
+                    } else if (type === 'Sous-tâche' || type === 'サブタスク') {
                         const parentOriginalId = parseInt(parentId);
                         const parentTask = taskMap.get(parentOriginalId);
                         if (parentTask) {
@@ -2001,10 +2366,7 @@
                 }
 
                 if (newTasks.length > 0) {
-                    const confirmMsg = `Voulez-vous importer ${newTasks.length} tâche(s) ?\n\n` +
-                                      `Options :\n` +
-                                      `• OK : Ajouter aux tâches existantes\n` +
-                                      `• Annuler : Annuler l'import`;
+                    const confirmMsg = t('alertImportConfirm').replace('{count}', newTasks.length);
 
                     if (confirm(confirmMsg)) {
                         // Add to existing tasks
@@ -2012,14 +2374,14 @@
                         renderMainTasks();
                         renderSubTasks();
                         saveData();
-                        alert(`✅ ${newTasks.length} tâche(s) importée(s) avec succès !`);
+                        alert(t('alertImportDone').replace('{count}', newTasks.length));
                     }
                 } else {
-                    alert('❌ Aucune tâche valide trouvée dans le fichier CSV');
+                    alert(t('alertImportNoTasks'));
                 }
             } catch (error) {
                 console.error('Erreur lors de l\'import:', error);
-                alert('❌ Erreur lors de l\'import du fichier CSV. Vérifiez le format du fichier.');
+                alert(t('alertImportError'));
             }
         }
 
@@ -2040,7 +2402,7 @@
         // Event listeners for import/export
         btnExportStats.addEventListener('click', () => {
             if (mainTasks.length === 0) {
-                alert('⚠️ Aucune donnée à exporter. Créez d\'abord des tâches.');
+                alert(t('alertNoDataExport'));
                 return;
             }
             exportStatisticsCSV();
@@ -2048,7 +2410,7 @@
 
         btnExportTasks.addEventListener('click', () => {
             if (mainTasks.length === 0) {
-                alert('⚠️ Aucune tâche à exporter. Créez d\'abord des tâches.');
+                alert(t('alertNoTasksExport'));
                 return;
             }
             exportTasksCSV();
@@ -2083,7 +2445,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.count && data.count > 0) {
-                        counterEl.textContent = `👁 ${data.count} visite${data.count > 1 ? 's' : ''}`;
+                        counterEl.textContent = `👁 ${data.count} ${data.count > 1 ? t('visitsPlural') : t('visits')}`;
                     } else {
                         throw new Error('Compteur invalide');
                     }
@@ -2094,15 +2456,20 @@
                     let visits = parseInt(localStorage.getItem('visitCount') || '0');
                     visits++;
                     localStorage.setItem('visitCount', visits.toString());
-                    counterEl.textContent = `👁 ${visits} visite${visits > 1 ? 's' : ''} (local)`;
+                    counterEl.textContent = `👁 ${visits} ${visits > 1 ? t('visitsPlural') : t('visits')} ${t('local')}`;
                 });
         }
         updateVisitCounter();
+
+        // Language toggle event listeners
+        document.getElementById('btn-lang-fr').addEventListener('click', () => setLanguage('fr'));
+        document.getElementById('btn-lang-ja').addEventListener('click', () => setLanguage('ja'));
 
         loadData();
         updateDisplay();
         renderMainTasks();
         renderSubTasks();
+        applyTranslations();
     </script>
 </body>
 </html>
