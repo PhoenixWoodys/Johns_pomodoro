@@ -541,6 +541,15 @@
                 flex-direction: column;
                 align-items: center;
             }
+            .main-layout > .container {
+                order: 1;
+            }
+            .main-layout > .todo-column:first-child {
+                order: 2;
+            }
+            .main-layout > .todo-column:last-child {
+                order: 3;
+            }
             .todo-column {
                 width: 100%;
                 max-width: 500px;
