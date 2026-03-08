@@ -8,7 +8,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+            background: linear-gradient(135deg, #7a5230 0%, #4a2810 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -774,6 +774,14 @@
                     <input type="text" id="youtube-url" placeholder="https://youtube.com/watch?v=... ou playlist">
                     <button id="btn-load-youtube" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Charger YouTube</button>
                     <button id="btn-toggle-youtube" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Afficher/Masquer YouTube</button>
+                </div>
+
+                <div class="file-input-group">
+                    <label>Thème de fond</label>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                        <button id="btn-theme-grey" class="btn-ghost" style="flex: 1; padding: 0.6rem;" onclick="applyTheme('grey')">⬛ Gris</button>
+                        <button id="btn-theme-sepia" class="btn-ghost" style="flex: 1; padding: 0.6rem;" onclick="applyTheme('sepia')">🟫 Sépia</button>
+                    </div>
                 </div>
 
                 <div class="file-input-group">
@@ -1679,6 +1687,10 @@
                 }
             }
 
+            // Load theme
+            const savedTheme = localStorage.getItem('pomodoroTheme') || 'sepia';
+            applyTheme(savedTheme);
+
             // Load YouTube URL
             const savedYoutubeUrl = localStorage.getItem('youtubeUrl');
             if (savedYoutubeUrl) {
@@ -1695,6 +1707,18 @@
             localStorage.setItem('pomodoroData', JSON.stringify(data));
         }
         
+        const THEMES = {
+            grey:  'linear-gradient(135deg, #4a5568 0%, #2d3748 100%)',
+            sepia: 'linear-gradient(135deg, #7a5230 0%, #4a2810 100%)'
+        };
+
+        function applyTheme(theme) {
+            document.body.style.background = THEMES[theme] || THEMES.grey;
+            document.getElementById('btn-theme-grey').style.opacity  = theme === 'grey'  ? '1' : '0.5';
+            document.getElementById('btn-theme-sepia').style.opacity = theme === 'sepia' ? '1' : '0.5';
+            localStorage.setItem('pomodoroTheme', theme);
+        }
+
         function saveSettings() {
             const settings = {
                 alarmType: alarmSelect.value
@@ -2483,7 +2507,7 @@
         // Initialize alarm volume
         alarmAudio.volume = alarmVolumeInput.value / 100;
 
-        // Global visit counter using Netlify Function
+        // Local visit counter
         function updateVisitCounter() {
             const counterEl = document.getElementById('visit-counter');
             counterEl.textContent = '👁 ...';
