@@ -805,6 +805,14 @@
                 </div>
 
                 <div class="file-input-group">
+                    <label id="label-target-sessions">Sessions cibles</label>
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
+                        <input type="number" id="input-target-sessions" placeholder="—" min="1" max="99" style="flex: 1;">
+                        <button class="btn-ghost" style="padding: 0.5rem 0.75rem;" onclick="applyTargetSessions()">OK</button>
+                    </div>
+                </div>
+
+                <div class="file-input-group">
                     <label id="label-background">Image de fond personnalisée</label>
                     <input type="file" id="background-file" accept="image/jpeg,image/jpg,image/png,image/gif,image/webp">
                     <button id="btn-remove-bg" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;">Supprimer l'image</button>
@@ -1026,6 +1034,8 @@
                 ytErrRestricted: 'Lecture non autorisée (restrictions)',
                 ytErrReferer: 'Erreur de configuration (Referer)',
                 ytErrCode: 'Erreur YouTube (code: {code})',
+                // Session target
+                targetSessionsLabel: 'Sessions cibles',
                 // Theme settings
                 themeLabel: 'Thème de fond',
                 themeGrey: 'Gris',
@@ -1152,6 +1162,8 @@
                 csvNo: 'いいえ',
                 csvSummary: 'サマリー',
                 csvTotalTime: '合計時間',
+                // Session target
+                targetSessionsLabel: '目標セッション数',
                 // Theme settings
                 themeLabel: '背景テーマ',
                 themeGrey: 'グレー',
@@ -1206,7 +1218,7 @@
             if (!isRunning && timeRemaining < totalTime && timeRemaining > 0) {
                 timerStatus.textContent = t('paused');
             }
-            sessionCountEl.textContent = `${t('session')} #${sessionCount}`;
+            updateSessionDisplay();
             // Settings labels
             document.getElementById('label-pomodoro-duration').textContent = t('pomodoroDuration');
             document.getElementById('label-break-duration').textContent = t('shortBreakDuration');
@@ -1223,6 +1235,7 @@
             document.getElementById('youtube-url').placeholder = t('youtubePlaceholder');
             document.getElementById('btn-load-youtube').textContent = t('loadYoutube');
             document.getElementById('btn-toggle-youtube').textContent = t('toggleYoutube');
+            document.getElementById('label-target-sessions').textContent = t('targetSessionsLabel');
             document.getElementById('label-theme').textContent = t('themeLabel');
             document.getElementById('label-theme-grey').textContent = t('themeGrey');
             document.getElementById('label-theme-sepia').textContent = t('themeSepia');
@@ -1694,7 +1707,7 @@
                     mainTasks = data.tasks || [];
                     taskIdCounter = data.taskIdCounter || 0;
                     sessionCount = data.sessionCount || 1;
-                    sessionCountEl.textContent = `${t('session')} #${sessionCount}`;
+                    updateSessionDisplay();
                     renderMainTasks();
                 } catch (e) {
                     console.error('Erreur de chargement des données:', e);
@@ -1731,6 +1744,10 @@
             const savedTheme = localStorage.getItem('pomodoroTheme') || 'sepia';
             applyTheme(savedTheme);
 
+            // Load target sessions
+            const savedTarget = localStorage.getItem('targetSessions');
+            if (savedTarget) document.getElementById('input-target-sessions').value = savedTarget;
+
             // Load custom badge text
             const savedBadge = localStorage.getItem('customBadgeText');
             if (savedBadge) document.getElementById('input-badge-text').value = savedBadge;
@@ -1758,6 +1775,18 @@
             localStorage.setItem('pomodoroData', JSON.stringify(data));
         }
         
+        function updateSessionDisplay() {
+            const target = parseInt(localStorage.getItem('targetSessions'));
+            const base = `${t('session')} #${sessionCount}`;
+            sessionCountEl.textContent = (target > 0) ? `${base} / ${target}` : base;
+        }
+
+        function applyTargetSessions() {
+            const val = parseInt(document.getElementById('input-target-sessions').value);
+            localStorage.setItem('targetSessions', isNaN(val) ? '' : val);
+            updateSessionDisplay();
+        }
+
         function getBadgePomodoro() {
             const custom = localStorage.getItem('customBadgeText');
             return (custom && custom.trim()) ? custom.trim() : t('badgePomodoro');
@@ -1991,7 +2020,7 @@
                 selectedTaskId = null;
                 taskIdCounter = 0;
                 sessionCount = 1;
-                sessionCountEl.textContent = `${t('session')} #1`;
+                updateSessionDisplay();
                 youtubeUrlInput.value = '';
                 localStorage.removeItem('youtubeUrl');
                 renderMainTasks();
@@ -2148,7 +2177,7 @@
             playAlarm();
             if (currentMode === 'pomodoro') {
                 sessionCount++;
-                sessionCountEl.textContent = `${t('session')} #${sessionCount}`;
+                updateSessionDisplay();
                 if (selectedTaskId !== null) {
                     const task = mainTasks.find(tk => tk.id === selectedTaskId);
                     if (task) {
