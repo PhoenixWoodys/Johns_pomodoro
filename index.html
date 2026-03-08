@@ -782,22 +782,22 @@
                 </div>
 
                 <div class="file-input-group">
-                    <label>Thème de fond</label>
+                    <label id="label-theme">Thème de fond</label>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
-                        <button id="btn-theme-grey" class="btn-ghost" style="flex: 1; padding: 0.6rem;" onclick="applyTheme('grey')">⬛ Gris</button>
-                        <button id="btn-theme-sepia" class="btn-ghost" style="flex: 1; padding: 0.6rem;" onclick="applyTheme('sepia')">🟫 Sépia</button>
+                        <button id="btn-theme-grey" class="btn-ghost" style="flex: 1; padding: 0.6rem;" onclick="applyTheme('grey')">⬛ <span id="label-theme-grey">Gris</span></button>
+                        <button id="btn-theme-sepia" class="btn-ghost" style="flex: 1; padding: 0.6rem;" onclick="applyTheme('sepia')">🟫 <span id="label-theme-sepia">Sépia</span></button>
                     </div>
                 </div>
 
                 <div class="file-input-group">
                     <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer;">
                         <input type="checkbox" id="chk-mode-below" style="width: 1rem; height: 1rem; cursor: pointer;">
-                        Boutons de mode sous le timer
+                        <span id="label-mode-below">Boutons de mode sous le timer</span>
                     </label>
                 </div>
 
                 <div class="file-input-group">
-                    <label>Texte du badge Pomodoro</label>
+                    <label id="label-badge-text">Texte du badge Pomodoro</label>
                     <div style="display: flex; gap: 0.5rem; margin-top: 0.25rem;">
                         <input type="text" id="input-badge-text" placeholder="POMODORO" maxlength="30" style="flex: 1;">
                         <button class="btn-ghost" style="padding: 0.5rem 0.75rem;" onclick="applyBadgeText()">OK</button>
@@ -1026,6 +1026,13 @@
                 ytErrRestricted: 'Lecture non autorisée (restrictions)',
                 ytErrReferer: 'Erreur de configuration (Referer)',
                 ytErrCode: 'Erreur YouTube (code: {code})',
+                // Theme settings
+                themeLabel: 'Thème de fond',
+                themeGrey: 'Gris',
+                themeSepia: 'Sépia',
+                // Layout settings
+                modeBelowLabel: 'Boutons de mode sous le timer',
+                badgeTextLabel: 'Texte du badge Pomodoro',
                 // Visit counter
                 visits: 'visite',
                 visitsPlural: 'visites',
@@ -1145,6 +1152,13 @@
                 csvNo: 'いいえ',
                 csvSummary: 'サマリー',
                 csvTotalTime: '合計時間',
+                // Theme settings
+                themeLabel: '背景テーマ',
+                themeGrey: 'グレー',
+                themeSepia: 'セピア',
+                // Layout settings
+                modeBelowLabel: 'モードボタンをタイマーの下に表示',
+                badgeTextLabel: 'ポモドーロバッジのテキスト',
             }
         };
 
@@ -1209,6 +1223,12 @@
             document.getElementById('youtube-url').placeholder = t('youtubePlaceholder');
             document.getElementById('btn-load-youtube').textContent = t('loadYoutube');
             document.getElementById('btn-toggle-youtube').textContent = t('toggleYoutube');
+            document.getElementById('label-theme').textContent = t('themeLabel');
+            document.getElementById('label-theme-grey').textContent = t('themeGrey');
+            document.getElementById('label-theme-sepia').textContent = t('themeSepia');
+            document.getElementById('label-mode-below').textContent = t('modeBelowLabel');
+            document.getElementById('label-badge-text').textContent = t('badgeTextLabel');
+            document.getElementById('input-badge-text').placeholder = t('badgePomodoro');
             document.getElementById('label-background').textContent = t('customBackground');
             document.getElementById('btn-remove-bg').textContent = t('removeImage');
             document.getElementById('label-task-display').textContent = t('taskListDisplay');
