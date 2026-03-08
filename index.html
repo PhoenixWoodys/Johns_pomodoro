@@ -835,6 +835,7 @@
 
                 <div class="file-input-group">
                     <label id="label-reset-section">Réinitialisation</label>
+                    <button id="btn-reset-sessions" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem; background: rgba(239, 68, 68, 0.1);">🔄 Réinitialiser le compteur de sessions</button>
                     <button id="btn-reset-all" class="btn-ghost" style="width: 100%; padding: 0.75rem; background: rgba(239, 68, 68, 0.2);">🗑️ Réinitialiser tout</button>
                     <div id="hint-reset" style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Supprime toutes les tâches et remet les compteurs à zéro</div>
                 </div>
@@ -989,6 +990,7 @@
                 importTasks: '📂 Importer tâches (CSV)',
                 saveLoadHint: 'Sauvegardez et chargez vos tâches et statistiques',
                 resetSection: 'Réinitialisation',
+                resetSessions: '🔄 Réinitialiser le compteur de sessions',
                 resetAll: '🗑️ Réinitialiser tout',
                 resetHint: 'Supprime toutes les tâches et remet les compteurs à zéro',
                 // Stats modal
@@ -1112,6 +1114,7 @@
                 importTasks: '📂 タスクをインポート (CSV)',
                 saveLoadHint: 'タスクと統計を保存・読み込み',
                 resetSection: 'リセット',
+                resetSessions: '🔄 セッションカウンターをリセット',
                 resetAll: '🗑️ すべてリセット',
                 resetHint: 'すべてのタスクを削除し、カウンターをゼロにリセットします',
                 statisticsHeading: '📊 統計',
@@ -1253,6 +1256,7 @@
             document.getElementById('btn-import-tasks').textContent = t('importTasks');
             document.getElementById('hint-save-load').textContent = t('saveLoadHint');
             document.getElementById('label-reset-section').textContent = t('resetSection');
+            document.getElementById('btn-reset-sessions').textContent = t('resetSessions');
             document.getElementById('btn-reset-all').textContent = t('resetAll');
             document.getElementById('hint-reset').textContent = t('resetHint');
             // Stats modal
@@ -2011,6 +2015,12 @@
             if (e.target === statsModal) {
                 statsModal.classList.add('hidden');
             }
+        });
+
+        document.getElementById('btn-reset-sessions').addEventListener('click', () => {
+            sessionCount = 1;
+            updateSessionDisplay();
+            saveData();
         });
 
         btnResetAll.addEventListener('click', () => {
