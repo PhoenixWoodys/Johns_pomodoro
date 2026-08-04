@@ -825,6 +825,16 @@
                 </div>
 
                 <div class="file-input-group">
+                    <label id="label-manual-time">Ajouter du temps manuellement</label>
+                    <select id="manual-time-task-select" style="width: 100%; margin-bottom: 0.5rem;"></select>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="number" id="manual-time-input" placeholder="Minutes" min="1" max="999" style="flex: 1;">
+                        <button class="btn-ghost" style="padding: 0.5rem 0.75rem;" onclick="addManualTime()" id="btn-add-manual-time">+ Ajouter</button>
+                    </div>
+                    <div id="hint-manual-time" style="font-size: 0.75rem; opacity: 0.6; margin-top: 0.5rem;">Ajoutez du temps passé sur une tâche sans lancer le minuteur (réunion, cours, podcast...)</div>
+                </div>
+
+                <div class="file-input-group">
                     <label id="label-import-export">Import / Export</label>
                     <button id="btn-export-stats" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">📊 Exporter statistiques (CSV)</button>
                     <button id="btn-export-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">💾 Exporter tâches (CSV)</button>
@@ -984,6 +994,13 @@
                 showMainTasks: 'Afficher tâches principales',
                 hideSubTasks: 'Masquer sous-tâches',
                 showSubTasks: 'Afficher sous-tâches',
+                manualTimeLabel: 'Ajouter du temps manuellement',
+                manualTimeSelectPlaceholder: 'Choisir une tâche...',
+                manualTimeInputPlaceholder: 'Minutes',
+                manualTimeButton: '+ Ajouter',
+                manualTimeHint: 'Ajoutez du temps passé sur une tâche sans lancer le minuteur (réunion, cours, podcast...)',
+                alertManualTimeNoTask: '⚠️ Veuillez sélectionner une tâche.',
+                alertManualTimeInvalid: '⚠️ Veuillez entrer une durée valide (en minutes).',
                 importExport: 'Import / Export',
                 exportStats: '📊 Exporter statistiques (CSV)',
                 exportTasks: '💾 Exporter tâches (CSV)',
@@ -1108,6 +1125,13 @@
                 showMainTasks: 'メインタスクを表示',
                 hideSubTasks: 'サブタスクを非表示',
                 showSubTasks: 'サブタスクを表示',
+                manualTimeLabel: '手動で時間を追加',
+                manualTimeSelectPlaceholder: 'タスクを選択...',
+                manualTimeInputPlaceholder: '分',
+                manualTimeButton: '+ 追加',
+                manualTimeHint: 'タイマーを使わずに、タスクに費やした時間を追加します（会議、授業、ポッドキャストなど）',
+                alertManualTimeNoTask: '⚠️ タスクを選択してください。',
+                alertManualTimeInvalid: '⚠️ 有効な時間（分）を入力してください。',
                 importExport: 'インポート / エクスポート',
                 exportStats: '📊 統計をエクスポート (CSV)',
                 exportTasks: '💾 タスクをエクスポート (CSV)',
@@ -1250,6 +1274,11 @@
             document.getElementById('label-task-display').textContent = t('taskListDisplay');
             document.getElementById('btn-toggle-main-tasks').textContent = mainTasksVisible ? t('hideMainTasks') : t('showMainTasks');
             document.getElementById('btn-toggle-sub-tasks').textContent = subTasksVisible ? t('hideSubTasks') : t('showSubTasks');
+            document.getElementById('label-manual-time').textContent = t('manualTimeLabel');
+            document.getElementById('manual-time-input').placeholder = t('manualTimeInputPlaceholder');
+            document.getElementById('btn-add-manual-time').textContent = t('manualTimeButton');
+            document.getElementById('hint-manual-time').textContent = t('manualTimeHint');
+            populateManualTimeSelect();
             document.getElementById('label-import-export').textContent = t('importExport');
             document.getElementById('btn-export-stats').textContent = t('exportStats');
             document.getElementById('btn-export-tasks').textContent = t('exportTasks');
@@ -2311,9 +2340,47 @@
             renderSubTasks();
         }
 
+        function populateManualTimeSelect() {
+            const select = document.getElementById('manual-time-task-select');
+            if (!select) return;
+            const previousValue = select.value;
+            select.innerHTML = `<option value="">${t('manualTimeSelectPlaceholder')}</option>`;
+            mainTasks.forEach(task => {
+                const opt = document.createElement('option');
+                opt.value = task.id;
+                opt.textContent = task.text;
+                select.appendChild(opt);
+            });
+            if (mainTasks.some(tk => String(tk.id) === previousValue)) {
+                select.value = previousValue;
+            }
+        }
+
+        function addManualTime() {
+            const select = document.getElementById('manual-time-task-select');
+            const input = document.getElementById('manual-time-input');
+            const taskId = parseInt(select.value);
+            const minutes = parseInt(input.value);
+            if (isNaN(taskId)) {
+                alert(t('alertManualTimeNoTask'));
+                return;
+            }
+            if (isNaN(minutes) || minutes <= 0) {
+                alert(t('alertManualTimeInvalid'));
+                return;
+            }
+            const task = mainTasks.find(tk => tk.id === taskId);
+            if (!task) return;
+            task.timeSpent = (task.timeSpent || 0) + minutes;
+            input.value = '';
+            renderMainTasks();
+            saveData();
+        }
+
         function renderMainTasks() {
             const list = document.getElementById('main-task-list');
             const empty = document.getElementById('main-empty');
+            populateManualTimeSelect();
             if (mainTasks.length === 0) {
                 list.style.display = 'none';
                 empty.style.display = 'block';
