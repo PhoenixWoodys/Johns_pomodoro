@@ -835,6 +835,17 @@
                 </div>
 
                 <div class="file-input-group">
+                    <label id="label-sync-sheets">Synchronisation (Google Sheets)</label>
+                    <input type="text" id="input-sync-url" placeholder="URL du Web App Apps Script">
+                    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn-ghost" style="flex: 1; padding: 0.5rem;" onclick="applySyncUrl()" id="btn-sync-connect">Connecter</button>
+                        <button class="btn-ghost" style="flex: 1; padding: 0.5rem;" onclick="pullFromRemote()" id="btn-sync-now">🔄 Sync</button>
+                    </div>
+                    <button id="btn-sync-disconnect" class="btn-ghost" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem;" onclick="disconnectSync()">Déconnecter</button>
+                    <div id="sync-status" style="font-size: 0.75rem; opacity: 0.7; margin-top: 0.5rem;">Non connecté</div>
+                </div>
+
+                <div class="file-input-group">
                     <label id="label-import-export">Import / Export</label>
                     <button id="btn-export-stats" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">📊 Exporter statistiques (CSV)</button>
                     <button id="btn-export-tasks" class="btn-ghost" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem;">💾 Exporter tâches (CSV)</button>
@@ -1001,6 +1012,16 @@
                 manualTimeHint: 'Ajoutez du temps passé sur une tâche sans lancer le minuteur (réunion, cours, podcast...)',
                 alertManualTimeNoTask: '⚠️ Veuillez sélectionner une tâche.',
                 alertManualTimeInvalid: '⚠️ Veuillez entrer une durée valide (en minutes).',
+                syncSectionLabel: 'Synchronisation (Google Sheets)',
+                syncUrlPlaceholder: 'URL du Web App Apps Script',
+                syncConnect: 'Connecter',
+                syncNow: '🔄 Sync',
+                syncDisconnect: 'Déconnecter',
+                syncNotConnected: 'Non connecté',
+                syncConnecting: 'Connexion...',
+                syncSyncing: 'Synchronisation...',
+                syncLastSynced: 'Dernière synchro {time}',
+                syncError: '⚠️ Erreur de synchronisation',
                 importExport: 'Import / Export',
                 exportStats: '📊 Exporter statistiques (CSV)',
                 exportTasks: '💾 Exporter tâches (CSV)',
@@ -1132,6 +1153,16 @@
                 manualTimeHint: 'タイマーを使わずに、タスクに費やした時間を追加します（会議、授業、ポッドキャストなど）',
                 alertManualTimeNoTask: '⚠️ タスクを選択してください。',
                 alertManualTimeInvalid: '⚠️ 有効な時間（分）を入力してください。',
+                syncSectionLabel: '同期 (Google Sheets)',
+                syncUrlPlaceholder: 'Apps Script ウェブアプリのURL',
+                syncConnect: '接続',
+                syncNow: '🔄 同期',
+                syncDisconnect: '切断',
+                syncNotConnected: '未接続',
+                syncConnecting: '接続中...',
+                syncSyncing: '同期中...',
+                syncLastSynced: '最終同期 {time}',
+                syncError: '⚠️ 同期エラー',
                 importExport: 'インポート / エクスポート',
                 exportStats: '📊 統計をエクスポート (CSV)',
                 exportTasks: '💾 タスクをエクスポート (CSV)',
@@ -1279,6 +1310,12 @@
             document.getElementById('btn-add-manual-time').textContent = t('manualTimeButton');
             document.getElementById('hint-manual-time').textContent = t('manualTimeHint');
             populateManualTimeSelect();
+            document.getElementById('label-sync-sheets').textContent = t('syncSectionLabel');
+            document.getElementById('input-sync-url').placeholder = t('syncUrlPlaceholder');
+            document.getElementById('btn-sync-connect').textContent = t('syncConnect');
+            document.getElementById('btn-sync-now').textContent = t('syncNow');
+            document.getElementById('btn-sync-disconnect').textContent = t('syncDisconnect');
+            updateSyncStatusUI(lastSyncStatusKind);
             document.getElementById('label-import-export').textContent = t('importExport');
             document.getElementById('btn-export-stats').textContent = t('exportStats');
             document.getElementById('btn-export-tasks').textContent = t('exportTasks');
@@ -1321,6 +1358,16 @@
         let taskIdCounter = 0;
         let mainTasksVisible = true;
         let subTasksVisible = true;
+
+        // Sheet sync variables
+        let lastModified = 0;
+        let syncUrl = '';
+        let syncInProgress = false;
+        let syncPushTimer = null;
+        let syncPullTimer = null;
+        let lastSyncStatusKind = 'idle'; // 'idle' | 'connecting' | 'syncing' | 'ok' | 'error'
+        const SYNC_PUSH_DEBOUNCE_MS = 2500;
+        const SYNC_PULL_INTERVAL_MS = 45000;
 
         // Ambient music variables
         let ambientPlaying = false;
@@ -1740,6 +1787,7 @@
                     mainTasks = data.tasks || [];
                     taskIdCounter = data.taskIdCounter || 0;
                     sessionCount = data.sessionCount || 1;
+                    lastModified = data.lastModified || 0;
                     updateSessionDisplay();
                     renderMainTasks();
                 } catch (e) {
@@ -1797,17 +1845,197 @@
             if (savedYoutubeUrl) {
                 youtubeUrlInput.value = savedYoutubeUrl;
             }
+
+            // Load sheet sync URL
+            const savedSyncUrl = localStorage.getItem('sheetSyncUrl');
+            if (savedSyncUrl) document.getElementById('input-sync-url').value = savedSyncUrl;
         }
 
         function saveData() {
+            lastModified = Date.now();
             const data = {
                 tasks: mainTasks,
                 taskIdCounter: taskIdCounter,
-                sessionCount: sessionCount
+                sessionCount: sessionCount,
+                lastModified: lastModified
             };
             localStorage.setItem('pomodoroData', JSON.stringify(data));
+            scheduleSyncPush();
         }
-        
+
+        // Persists local state without touching lastModified or triggering a push —
+        // used only when applying data just pulled FROM the remote sheet.
+        function persistLocalOnly() {
+            localStorage.setItem('pomodoroData', JSON.stringify({
+                tasks: mainTasks,
+                taskIdCounter: taskIdCounter,
+                sessionCount: sessionCount,
+                lastModified: lastModified
+            }));
+        }
+
+        // ===== Google Sheets sync =====
+
+        function getSyncUrl() {
+            return localStorage.getItem('sheetSyncUrl') || '';
+        }
+
+        function applySyncUrl() {
+            const val = document.getElementById('input-sync-url').value.trim();
+            localStorage.setItem('sheetSyncUrl', val);
+            syncUrl = val;
+            if (syncPullTimer) { clearInterval(syncPullTimer); syncPullTimer = null; }
+            if (!val) { updateSyncStatusUI('idle'); return; }
+            updateSyncStatusUI('connecting');
+            pullFromRemote();
+            startSyncPolling();
+        }
+
+        function disconnectSync() {
+            localStorage.removeItem('sheetSyncUrl');
+            document.getElementById('input-sync-url').value = '';
+            syncUrl = '';
+            if (syncPullTimer) { clearInterval(syncPullTimer); syncPullTimer = null; }
+            if (syncPushTimer) { clearTimeout(syncPushTimer); syncPushTimer = null; }
+            updateSyncStatusUI('idle');
+        }
+
+        // Flattens mainTasks into wire rows. Twin of exportTasksCSV(), but with fixed
+        // English type tokens (not translated) so the wire format survives language switches.
+        function tasksToFlatRows() {
+            const rows = [];
+            mainTasks.forEach(task => {
+                rows.push({
+                    type: 'task',
+                    id: task.id,
+                    text: task.text,
+                    completed: !!task.completed,
+                    timeSpent: task.timeSpent || 0,
+                    parentId: null
+                });
+                (task.subtasks || []).forEach(st => {
+                    rows.push({
+                        type: 'subtask',
+                        id: st.id,
+                        text: st.text,
+                        completed: !!st.completed,
+                        timeSpent: 0,
+                        parentId: task.id
+                    });
+                });
+            });
+            return rows;
+        }
+
+        // Rebuilds mainTasks from wire rows, PRESERVING original ids (unlike importTasksCSV,
+        // which mints fresh ones) — required for the remote state to correctly replace local state.
+        function flatRowsToTasks(rows) {
+            const byId = new Map();
+            const tasks = [];
+            let maxId = -1;
+            rows.filter(r => r.type === 'task').forEach(r => {
+                const task = { id: r.id, text: r.text, completed: r.completed, subtasks: [], timeSpent: r.timeSpent || 0 };
+                byId.set(r.id, task);
+                tasks.push(task);
+                maxId = Math.max(maxId, r.id);
+            });
+            rows.filter(r => r.type === 'subtask').forEach(r => {
+                const parent = byId.get(r.parentId);
+                if (parent) parent.subtasks.push({ id: r.id, text: r.text, completed: r.completed });
+                maxId = Math.max(maxId, r.id);
+            });
+            return { tasks, maxId };
+        }
+
+        function scheduleSyncPush() {
+            if (!syncUrl) return;
+            if (syncPushTimer) clearTimeout(syncPushTimer);
+            syncPushTimer = setTimeout(pushToRemote, SYNC_PUSH_DEBOUNCE_MS);
+        }
+
+        function pushToRemote() {
+            if (!syncUrl || syncInProgress) return;
+            syncInProgress = true;
+            updateSyncStatusUI('syncing');
+            fetch(syncUrl, {
+                method: 'POST',
+                // text/plain deliberately avoids a CORS preflight (OPTIONS) — Apps Script can't answer one.
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({
+                    tasks: tasksToFlatRows(),
+                    taskIdCounter: taskIdCounter,
+                    sessionCount: sessionCount,
+                    lastModified: lastModified
+                })
+            })
+                .then(r => r.json())
+                .then(() => updateSyncStatusUI('ok'))
+                .catch(err => { console.error('Sync push error:', err); updateSyncStatusUI('error'); })
+                .finally(() => { syncInProgress = false; });
+        }
+
+        function pullFromRemote() {
+            if (!syncUrl || syncInProgress) return;
+            syncInProgress = true;
+            updateSyncStatusUI('syncing');
+            fetch(syncUrl) // plain GET, no custom headers -> stays a CORS "simple request"
+                .then(r => r.json())
+                .then(remote => {
+                    if (remote.status !== 'ok') throw new Error(remote.message || 'bad response');
+                    const remoteIsEmpty = (!remote.tasks || remote.tasks.length === 0) && !remote.lastModified;
+                    if (remoteIsEmpty && mainTasks.length > 0) {
+                        // First-ever connection to a blank sheet: seed it from local data
+                        // instead of staying idle until the next local mutation.
+                        scheduleSyncPush();
+                    } else if (remote.lastModified > lastModified) {
+                        const { tasks, maxId } = flatRowsToTasks(remote.tasks || []);
+                        mainTasks = tasks;
+                        taskIdCounter = Math.max(remote.taskIdCounter || 0, maxId + 1);
+                        sessionCount = remote.sessionCount || 1;
+                        lastModified = remote.lastModified;
+                        persistLocalOnly();
+                        renderMainTasks();
+                        renderSubTasks();
+                        updateSessionDisplay();
+                    } else if (remote.lastModified < lastModified) {
+                        // We're ahead (e.g. reconnected after being offline) — reconcile by pushing.
+                        // Debounced (not a direct pushToRemote() call): syncInProgress is still true
+                        // here until this .then() chain resolves, so a direct call would no-op.
+                        scheduleSyncPush();
+                    }
+                    updateSyncStatusUI('ok');
+                })
+                .catch(err => { console.error('Sync pull error:', err); updateSyncStatusUI('error'); })
+                .finally(() => { syncInProgress = false; });
+        }
+
+        function startSyncPolling() {
+            if (syncPullTimer) clearInterval(syncPullTimer);
+            syncPullTimer = setInterval(pullFromRemote, SYNC_PULL_INTERVAL_MS);
+        }
+
+        function updateSyncStatusUI(kind) {
+            lastSyncStatusKind = kind;
+            const el = document.getElementById('sync-status');
+            if (!el) return;
+            const map = {
+                idle: t('syncNotConnected'),
+                connecting: t('syncConnecting'),
+                syncing: t('syncSyncing'),
+                ok: t('syncLastSynced').replace('{time}', new Date().toLocaleTimeString()),
+                error: t('syncError')
+            };
+            el.textContent = map[kind] || '';
+        }
+
+        function initSync() {
+            syncUrl = getSyncUrl();
+            if (!syncUrl) { updateSyncStatusUI('idle'); return; } // zero behavior change when unconfigured
+            updateSyncStatusUI('connecting');
+            pullFromRemote();
+            startSyncPolling();
+        }
+
         function updateSessionDisplay() {
             const target = parseInt(localStorage.getItem('targetSessions'));
             const base = `${t('session')} #${sessionCount}`;
@@ -2728,6 +2956,7 @@
         renderMainTasks();
         renderSubTasks();
         applyTranslations();
+        initSync();
     </script>
 </body>
 </html>
