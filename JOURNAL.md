@@ -13,7 +13,28 @@ Structure :
 
 Fonctionnalités principales : minuteur Pomodoro/pause, gestion tâches + sous-tâches avec suivi du temps, statistiques, import/export CSV, arrière-plan/musique/alarme personnalisables, i18n (fr/ja).
 
-État actuel : synchro multi-ordinateurs via Google Sheets ajoutée (voir session ci-dessous), en attente de déploiement/test réel par l'utilisateur.
+État actuel : synchro multi-ordinateurs via Google Sheets déployée et validée en conditions réelles (voir session du 2026-08-26).
+
+---
+
+## Session du 2026-08-26
+
+**Contexte** : Premier déploiement réel de la synchro Google Sheets par l'utilisateur (feature implémentée le 2026-08-08, jamais testée en conditions réelles jusqu'ici). Objectif : fusionner les tâches déjà présentes sur une machine avec celles restées locales sur une autre.
+
+### Échanges
+- **User** : demande la procédure pour fusionner les tâches locales avec celles déjà synchronisées dans le Sheet.
+- **Claude** : explique que le mécanisme est "dernier écrit gagne" (remplacement intégral, pas de fusion champ par champ) et propose une procédure de contournement via export/import CSV (l'import ajoute au lieu de remplacer).
+- **User** : erreur de synchronisation à la connexion.
+- **Claude** : diagnostic depuis les logs console fournis — l'URL collée était celle de la feuille (`docs.google.com/spreadsheets/.../edit`) et non l'URL de déploiement Web App (`script.google.com/macros/s/.../exec`), d'où un blocage CORS/ServiceLogin. Correction indiquée : récupérer l'URL via Apps Script → Déployer → Gérer les déploiements.
+- **User** : URL corrigée, connexion fonctionnelle ; import CSV effectué, fusion confirmée réussie.
+
+### Actions réalisées
+- Aucune modification de code — session de test/diagnostic côté utilisateur, assistée en chat.
+- Mise à jour de ce JOURNAL.md (section Documentation + présente session).
+
+### État en fin de session
+- Synchro Google Sheets validée en conditions réelles pour la première fois : connexion, pull, et fusion via export/import CSV fonctionnels.
+- Point de vigilance identifié pour `SHEETS_SYNC_SETUP.md` : le risque de confusion entre URL de la feuille et URL de déploiement Web App n'est pas explicitement mis en garde dans le guide — cause d'erreur probable pour un futur redéploiement ou une autre machine.
 
 ---
 

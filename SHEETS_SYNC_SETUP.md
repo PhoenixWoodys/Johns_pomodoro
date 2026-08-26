@@ -18,6 +18,8 @@ Cette fonctionnalité permet de synchroniser tes tâches, sous-tâches, compteur
    - Google va demander une autorisation ("Cette application n'est pas vérifiée") — c'est normal pour un script personnel non publié. Clique sur **Paramètres avancés** puis **Accéder à [nom du projet] (non sécurisé)**, et autorise l'accès à la feuille.
    - Copie l'**URL de l'application Web** générée (elle se termine par `/exec`).
 
+   ⚠️ **Ne confonds pas cette URL avec l'URL de la feuille** (celle de ton onglet navigateur, `docs.google.com/spreadsheets/.../edit`). Coller l'URL `/edit` dans les réglages du pomodoro ne fonctionnera jamais — le navigateur tentera de charger la page Google Sheets elle-même et échouera avec une erreur CORS/connexion. La bonne URL commence par `script.google.com/macros/s/` et se termine par `/exec`.
+
 5. Dans le pomodoro (sur chaque ordinateur à synchroniser) : **⚙️ Réglages → Synchronisation (Google Sheets)** → colle l'URL → **Connecter**.
 
 C'est tout. Les deux onglets `Tasks` et `Meta` sont créés automatiquement dans la feuille au premier appel — rien à préparer manuellement dedans.
