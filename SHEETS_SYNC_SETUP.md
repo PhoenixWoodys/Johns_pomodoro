@@ -39,3 +39,15 @@ C'est tout. Les deux onglets `Tasks` et `Meta` sont créés automatiquement dans
 ## "Réinitialiser tout" et synchro
 
 Le bouton de réinitialisation complète des réglages (Réglages → Réinitialiser) déclenche aussi une synchro : si une feuille est connectée, la remise à zéro sera poussée dessus (et donc sur les autres ordinateurs synchronisés) à la synchro suivante.
+
+## Connecter un deuxième ordinateur qui a déjà ses propres tâches
+
+La synchro ne fusionne rien : à la connexion, le côté dont l'horodatage (`lastModified`) est le plus récent **remplace intégralement** l'autre — pas de fusion tâche par tâche, pas de choix proposé à l'écran. Si le deuxième ordinateur a des tâches en cours non encore synchronisées, elles seront **écrasées silencieusement** si la feuille distante est plus récente. Il faut donc les sauvegarder avant de connecter, puis les réintégrer à la main :
+
+1. **Avant de coller l'URL de synchro** sur ce deuxième ordinateur : Réglages → **💾 Exporter tâches (CSV)**. Ça sauvegarde toutes ses tâches actuelles (et leur temps) dans un fichier local.
+2. Colle l'URL de synchro et clique **Connecter**. Les tâches locales de cet ordinateur sont remplacées par celles de la feuille (c'est pour ça qu'on a exporté avant).
+3. Ouvre le fichier CSV exporté à l'étape 1 et compare-le à la liste de tâches maintenant affichée (celle qui vient d'être synchronisée) :
+   - **Tâche présente uniquement dans le CSV** (absente de la liste synchronisée) → sans risque, à réimporter telle quelle.
+   - **Tâche présente des deux côtés** (même nom suivi indépendamment sur les deux ordinateurs, ex. "Japonais") → ne pas la réimporter directement, ça créerait un doublon. L'import CSV ne fait **aucune détection de doublon** par nom : il crée systématiquement une tâche avec un nouvel ID plutôt que de cumuler le temps sur la tâche existante ([index.html](index.html), fonction `importTasksCSV`).
+4. Si besoin, édite le CSV pour ne garder que les lignes "tâches uniquement locales" (supprime les lignes en doublon), puis Réglages → **📂 Importer tâches (CSV)** → sélectionne ce fichier. L'import est additif (il ajoute aux tâches existantes, ne remplace rien), donc ça complète la liste synchronisée sans l'écraser.
+5. Pour chaque tâche en doublon repérée à l'étape 3 : note le temps (colonne "Temps passé (min)") du CSV exporté, puis sur la tâche déjà synchronisée utilise Réglages → **Ajouter du temps manuellement** pour ajouter ce même nombre de minutes. Le temps des deux ordinateurs se retrouve ainsi cumulé sur une seule tâche.
